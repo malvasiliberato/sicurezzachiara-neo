@@ -604,6 +604,18 @@ test('company detail surfaces contextual core starter pack signals', function ()
             ->component('sicurezzachiara/companies/Show')
             ->where('contextBridge.focus', 'deadlines')
             ->where('contextBridge.suggestedAction.label', 'Chiudi le scadenze aperte')
+            ->where('contextBridge.workQueue.0.key', 'deadlines')
+            ->where('contextBridge.workQueue.0.count', $overdueMeasures)
+            ->where('contextBridge.workQueue.0.actionRoute', route('measure-registries.index', [
+                'company_id' => $company->id,
+                'origin' => 'company_show',
+                'focus' => 'deadlines',
+                'scope' => 'overdue',
+            ]))
+            ->where('contextBridge.workQueue', fn ($queue) => collect($queue)->contains(
+                fn (array $item) => $item['key'] === 'follow_up'
+                    && $item['count'] === $engineSummary['followUpsOpen']
+            ))
             ->where('contextBridge.actions.reviewRoute', route('companies.risk-profile.review.show', [
                 'company' => $company,
                 'riskProfileItem' => $reviewItem,
@@ -624,6 +636,12 @@ test('company detail surfaces contextual core starter pack signals', function ()
                 'origin' => 'company_show',
                 'focus' => 'deadlines',
             ]))
+            ->where('contextBridge.operationalQueue.0.key', 'reviews')
+            ->where('contextBridge.operationalQueue.0.count', $engineSummary['reviewsDue'])
+            ->where('contextBridge.operationalQueue.1.key', 'follow_up')
+            ->where('contextBridge.operationalQueue.1.count', $engineSummary['followUpsOpen'])
+            ->where('contextBridge.operationalQueue.2.key', 'registries')
+            ->where('contextBridge.operationalQueue.2.count', $engineSummary['pendingMeasures'])
             ->where('contextBridge.stats.uncoveredRisks', $engineSummary['uncoveredRisks'])
             ->where('contextBridge.stats.reviewsDue', $engineSummary['reviewsDue'])
             ->where('contextBridge.stats.followUpsOpen', $engineSummary['followUpsOpen'])

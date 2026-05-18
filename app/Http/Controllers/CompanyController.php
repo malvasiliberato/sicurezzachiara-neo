@@ -471,6 +471,74 @@ class CompanyController extends Controller
             ],
         };
 
+        $workQueue = collect([
+            $overdueMeasures > 0 ? [
+                'key' => 'deadlines',
+                'label' => 'Scadenze da chiudere',
+                'count' => $overdueMeasures,
+                'helper' => 'Le misure oltre data sono il primo blocco operativo da riallineare nel registro aziendale.',
+                'actionLabel' => 'Apri scadute',
+                'actionRoute' => route('measure-registries.index', [
+                    'company_id' => $company->id,
+                    'origin' => 'company_show',
+                    'focus' => 'deadlines',
+                    'scope' => 'overdue',
+                ]),
+            ] : null,
+            $reviewsDue > 0 ? [
+                'key' => 'reviews',
+                'label' => 'Review consulenziali',
+                'count' => $reviewsDue,
+                'helper' => 'Ci sono rischi che richiedono un riallineamento del giudizio professionale.',
+                'actionLabel' => 'Apri review',
+                'actionRoute' => $reviewItem
+                    ? route('companies.risk-profile.review.show', [
+                        'company' => $company,
+                        'riskProfileItem' => $reviewItem,
+                        'origin' => 'company_show',
+                        'focus' => 'reviews',
+                    ])
+                    : route('companies.risk-profile.show', [
+                        'company' => $company,
+                        'origin' => 'company_show',
+                        'focus' => 'reviews',
+                    ]),
+            ] : null,
+            $followUpsOpen > 0 ? [
+                'key' => 'follow_up',
+                'label' => 'Follow-up aperti',
+                'count' => $followUpsOpen,
+                'helper' => 'Alcuni rischi restano in carico operativo e vanno chiusi tra review e registri.',
+                'actionLabel' => 'Apri follow-up',
+                'actionRoute' => route('measure-registries.index', [
+                    'company_id' => $company->id,
+                    'origin' => 'company_show',
+                    'focus' => 'follow_up',
+                    'scope' => 'follow_up_open',
+                    'family' => 'follow_up',
+                ]),
+            ] : null,
+            $missingExpectedMeasures > 0 ? [
+                'key' => 'expected_gaps',
+                'label' => 'Presidi attesi mancanti',
+                'count' => $missingExpectedMeasures,
+                'helper' => 'Il motore ha ancora misure attese non coperte nel perimetro corrente.',
+                'actionLabel' => 'Apri misure',
+                'actionRoute' => $reviewItem
+                    ? route('companies.risk-profile.measures.show', [
+                        'company' => $company,
+                        'riskProfileItem' => $reviewItem,
+                        'origin' => 'company_show',
+                        'focus' => 'all',
+                    ])
+                    : route('companies.risk-profile.show', [
+                        'company' => $company,
+                        'origin' => 'company_show',
+                        'focus' => 'all',
+                    ]),
+            ] : null,
+        ])->filter()->values()->all();
+
         return [
             'focus' => $focus,
             'focusLabel' => match ($focus) {
@@ -480,6 +548,76 @@ class CompanyController extends Controller
                 default => 'Copertura',
             },
             'suggestedAction' => $suggestedAction,
+            'workQueue' => $workQueue,
+            'operationalQueue' => collect([
+                [
+                    'key' => 'reviews',
+                    'label' => 'Review da chiudere',
+                    'count' => $reviewsDue,
+                    'status' => $reviewsDue > 0 ? 'open' : 'aligned',
+                    'helper' => $reviewsDue > 0
+                        ? 'Il giudizio consulenziale va riallineato sui rischi che oggi risultano in review.'
+                        : 'Non risultano review aperte nel perimetro aziendale corrente.',
+                    'actionLabel' => 'Apri review',
+                    'actionRoute' => $reviewItem
+                        ? route('companies.risk-profile.review.show', [
+                            'company' => $company,
+                            'riskProfileItem' => $reviewItem,
+                            'origin' => 'company_show',
+                            'focus' => 'reviews',
+                        ])
+                        : route('companies.risk-profile.show', [
+                            'company' => $company,
+                            'origin' => 'company_show',
+                            'focus' => 'reviews',
+                        ]),
+                ],
+                [
+                    'key' => 'follow_up',
+                    'label' => 'Follow-up operativi',
+                    'count' => $followUpsOpen,
+                    'status' => $followUpsOpen > 0 ? 'open' : 'aligned',
+                    'helper' => $followUpsOpen > 0
+                        ? 'Alcuni rischi restano in carico operativo e vanno chiusi tra profilo e registri.'
+                        : 'Non risultano follow-up aperti nel perimetro aziendale corrente.',
+                    'actionLabel' => 'Apri follow-up',
+                    'actionRoute' => route('measure-registries.index', [
+                        'company_id' => $company->id,
+                        'origin' => 'company_show',
+                        'focus' => 'follow_up',
+                        'scope' => 'follow_up_open',
+                        'family' => 'follow_up',
+                    ]),
+                ],
+                [
+                    'key' => 'registries',
+                    'label' => 'Registri famiglia',
+                    'count' => $pendingMeasures,
+                    'status' => $pendingMeasures > 0 ? 'attention' : 'aligned',
+                    'helper' => $overdueMeasures > 0
+                        ? $overdueMeasures.' misure oltre data richiedono chiusura nel registro contestuale.'
+                        : 'Controlla attuazione, owner e scadenze delle misure per famiglia.',
+                    'actionLabel' => 'Apri registri',
+                    'actionRoute' => route('measure-registries.index', array_filter([
+                        'company_id' => $company->id,
+                        'origin' => 'company_show',
+                        'focus' => $focus,
+                        'scope' => $scope,
+                        'family' => $focus === 'follow_up' ? 'follow_up' : null,
+                    ], fn ($value) => $value !== null && $value !== '')),
+                ],
+                [
+                    'key' => 'dvr',
+                    'label' => 'DVR light',
+                    'count' => $missingExpectedMeasures,
+                    'status' => $missingExpectedMeasures > 0 ? 'to_complete' : 'aligned',
+                    'helper' => $missingExpectedMeasures > 0
+                        ? 'Il DVR resta consultabile, ma ha ancora gap di presidio aperti nel perimetro corrente.'
+                        : 'Il DVR riflette un perimetro gia\' piu\' allineato sul piano operativo.',
+                    'actionLabel' => 'Apri DVR',
+                    'actionRoute' => route('companies.dvr.show', $company),
+                ],
+            ])->all(),
             'stats' => [
                 'activeRisks' => (int) ($summary['activeRisks'] ?? 0),
                 'uncoveredRisks' => $uncoveredRisks,

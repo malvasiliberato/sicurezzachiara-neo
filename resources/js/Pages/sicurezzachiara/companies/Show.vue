@@ -140,6 +140,34 @@ const focusSignals = computed(() => [
     value: props.contextBridge.stats.overdueMeasures,
   },
 ]);
+const focusWorkQueue = computed(() => props.contextBridge.workQueue ?? []);
+const engineHighlights = computed(() => [
+  {
+    key: "risk-priority",
+    title: "Priorita' rischio",
+    value: `${props.contextBridge.stats.highPriorityRisks} alti`,
+    helper: `${props.contextBridge.stats.uncoveredRisks} rischi restano ancora scoperti.`,
+  },
+  {
+    key: "expected-coverage",
+    title: "Copertura attesa",
+    value: `${props.contextBridge.stats.coveredExpectedMeasures} coperti`,
+    helper: `${props.contextBridge.stats.substitutedExpectedMeasures} coperture equivalenti su ${props.coreStarterPack.summary.expectedMeasuresCount} attese.`,
+  },
+  {
+    key: "coverage-rate",
+    title: "Stato misure",
+    value: `${props.contextBridge.stats.pendingMeasures} aperte`,
+    helper: `${props.contextBridge.stats.implementedMeasures} gia' attuate | copertura ${props.contextBridge.stats.coverageRate}%.`,
+  },
+  {
+    key: "expected-gaps",
+    title: "Gap residui",
+    value: `${props.contextBridge.stats.missingExpectedMeasures} mancanti`,
+    helper: `${props.contextBridge.stats.risksWithExpectedGaps} rischi hanno ancora gap attesi.`,
+  },
+]);
+const operationsQueue = computed(() => props.contextBridge.operationalQueue ?? []);
 
 const riskSourceCards = computed(() => [
   {
@@ -384,9 +412,9 @@ const engineRows = computed(() => [
     title: "Rischi nel profilo",
     status: `${props.contextBridge.stats.activeRisks} attivi`,
     summary: props.contextBridge.stats.uncoveredRisks > 0
-      ? `${props.contextBridge.stats.uncoveredRisks} rischi restano scoperti | ${props.contextBridge.stats.highPriorityRisks} ad alta priorita'.`
+      ? `${props.contextBridge.stats.uncoveredRisks} rischi restano scoperti | ${props.contextBridge.stats.highPriorityRisks} ad alta priorita' richiedono lettura immediata.`
       : "Il profilo rischio aziendale emerge dai produttori oggi presenti nel contesto.",
-    actionLabel: "Apri profilo rischio",
+    actionLabel: "Apri rischi",
     actionRoute: props.contextBridge.actions.riskProfileRoute,
   },
   {
@@ -396,9 +424,9 @@ const engineRows = computed(() => [
       ? `${props.contextBridge.stats.missingExpectedMeasures} gap`
       : "Allineati",
     summary: props.coreStarterPack.summary.expectedMeasuresCount > 0
-      ? `${props.contextBridge.stats.coveredExpectedMeasures} coperti${props.contextBridge.stats.substitutedExpectedMeasures > 0 ? ` | ${props.contextBridge.stats.substitutedExpectedMeasures} per equivalenza` : ""} su ${props.coreStarterPack.summary.expectedMeasuresCount} attesi.`
+      ? `${props.contextBridge.stats.coveredExpectedMeasures} coperti diretti${props.contextBridge.stats.substitutedExpectedMeasures > 0 ? ` | ${props.contextBridge.stats.substitutedExpectedMeasures} per equivalenza` : ""} su ${props.coreStarterPack.summary.expectedMeasuresCount} attesi.`
       : "Il motore non ha ancora espresso presidi attesi nel perimetro corrente.",
-    actionLabel: "Apri misure",
+    actionLabel: "Apri misure attese",
     actionRoute: props.contextBridge.actions.measuresRoute,
   },
   {
@@ -408,7 +436,7 @@ const engineRows = computed(() => [
     summary: props.contextBridge.stats.pendingMeasures > 0
       ? `${props.contextBridge.stats.pendingMeasures} misure restano aperte o da verificare | ${props.contextBridge.stats.risksWithExpectedGaps} rischi hanno ancora gap attesi.`
       : props.contextBridge.suggestedAction.helper,
-    actionLabel: "Apri registri",
+    actionLabel: "Apri registri famiglia",
     actionRoute: props.contextBridge.actions.registryRoute,
   },
 ]);
@@ -431,8 +459,8 @@ const operationsRows = computed(() => [
     summary: props.contextBridge.stats.followUpsOpen > 0
       ? "Alcuni rischi restano in carico operativo e vanno chiusi tra review e registri."
       : "Non ci sono follow-up aperti nel perimetro aziendale corrente.",
-    actionLabel: "Apri profilo rischio",
-    actionRoute: props.contextBridge.actions.riskProfileRoute,
+    actionLabel: "Apri follow-up",
+    actionRoute: props.contextBridge.operationalQueue?.find((item) => item.key === "follow_up")?.actionRoute ?? props.contextBridge.actions.registryRoute,
   },
   {
     key: "registries",
@@ -661,6 +689,29 @@ const trackTitle = computed(() => domainTracks.find((track) => track.key === act
               <span class="text-muted fs-13">{{ signal.label }}</span>
             </div>
           </div>
+
+          <div v-if="focusWorkQueue.length" class="rounded-3 bg-white border mt-3 overflow-hidden">
+            <div class="px-3 py-2 border-bottom text-uppercase text-muted fw-semibold fs-12">
+              Coda di lavoro minima
+            </div>
+            <div
+              v-for="(item, index) in focusWorkQueue"
+              :key="item.key"
+              class="d-flex align-items-start justify-content-between gap-3 px-3 py-3"
+              :class="{ 'border-top': index > 0 }"
+            >
+              <div class="flex-grow-1 min-w-0">
+                <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                  <h6 class="mb-0">{{ item.label }}</h6>
+                  <span class="badge bg-light text-body">{{ item.count }}</span>
+                </div>
+                <div class="text-muted fs-13">{{ item.helper }}</div>
+              </div>
+              <div class="flex-shrink-0">
+                <Link :href="item.actionRoute" class="btn btn-sm btn-soft-primary">{{ item.actionLabel }}</Link>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="nav nav-pills nav-success gap-2 mb-4">
@@ -743,6 +794,17 @@ const trackTitle = computed(() => domainTracks.find((track) => track.key === act
           </template>
 
           <template v-else-if="activeTrack === 'engine-output'">
+            <div class="p-3 border-bottom bg-light-subtle">
+              <div class="row g-3">
+                <div v-for="item in engineHighlights" :key="item.key" class="col-xl-3 col-md-6">
+                  <div class="rounded-3 bg-white border h-100 px-3 py-3">
+                    <div class="text-uppercase text-muted fw-semibold fs-12 mb-1">{{ item.title }}</div>
+                    <div class="fw-semibold fs-5 text-body mb-1">{{ item.value }}</div>
+                    <div class="text-muted fs-13">{{ item.helper }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div
               v-for="(row, index) in engineRows"
               :key="row.key"
@@ -763,6 +825,22 @@ const trackTitle = computed(() => domainTracks.find((track) => track.key === act
           </template>
 
           <template v-else>
+            <div class="p-3 border-bottom bg-light-subtle">
+              <div class="row g-3">
+                <div v-for="item in operationsQueue" :key="item.key" class="col-xl-3 col-md-6">
+                  <div class="rounded-3 bg-white border h-100 px-3 py-3">
+                    <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                      <div class="text-uppercase text-muted fw-semibold fs-12">{{ item.label }}</div>
+                      <span class="badge" :class="item.status === 'aligned' ? 'bg-success-subtle text-success' : 'bg-light text-body'">
+                        {{ item.count }}
+                      </span>
+                    </div>
+                    <div class="text-muted fs-13 mb-3">{{ item.helper }}</div>
+                    <Link :href="item.actionRoute" class="btn btn-sm btn-soft-primary">{{ item.actionLabel }}</Link>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div
               v-for="(row, index) in operationsRows"
               :key="row.key"
