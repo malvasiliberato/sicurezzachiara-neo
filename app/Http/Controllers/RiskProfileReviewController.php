@@ -427,26 +427,81 @@ class RiskProfileReviewController extends Controller
                 'label' => 'Segui il follow-up operativo',
                 'helper' => 'La review e\' gia\' tradotta in criticita\' operative: il prossimo passaggio utile e\' lavorare su misure e registri in carico.',
                 'tone' => 'warning',
+                'laneLabel' => 'Corsia follow-up',
+                'actionLabel' => 'Apri corsia follow-up',
+                'actionRoute' => $workspaceRoute,
             ],
             $coverageGapCount > 0 => [
                 'label' => 'Colma i presidi attesi',
                 'helper' => 'Il motore mostra ancora gap o coperture parziali: conviene completare prima i presidi attesi del rischio.',
                 'tone' => 'danger',
+                'laneLabel' => 'Corsia copertura',
+                'actionLabel' => 'Apri misure del rischio',
+                'actionRoute' => $measuresRoute,
             ],
             $openMeasuresCount > 0 => [
                 'label' => 'Chiudi le misure ancora aperte',
                 'helper' => 'I presidi esistono ma non sono ancora tutti consolidati come attuati o verificati.',
                 'tone' => 'info',
+                'laneLabel' => 'Corsia misure',
+                'actionLabel' => 'Apri misure del rischio',
+                'actionRoute' => $measuresRoute,
             ],
             default => [
                 'label' => 'Review allineata al presidio',
                 'helper' => 'Il rischio e\' gia\' leggibile come review coerente: puoi tornare al profilo o monitorarlo dal workspace.',
                 'tone' => 'success',
+                'laneLabel' => 'Corsia review',
+                'actionLabel' => 'Rientra nel profilo rischio',
+                'actionRoute' => $profileRoute,
             ],
         };
 
+        $operationalQueue = [
+            [
+                'key' => 'follow_up',
+                'label' => 'Segui follow-up',
+                'count' => $followUpOpen ? 1 : 0,
+                'status' => $followUpOpen ? 'open' : 'aligned',
+                'helper' => $followUpOpen
+                    ? 'Il rischio e\' in carico operativo: conviene chiudere il follow-up prima di archiviare la review.'
+                    : 'Non risultano follow-up aperti su questo rischio.',
+                'actionLabel' => 'Apri corsia follow-up',
+                'tone' => $followUpOpen ? 'warning' : 'secondary',
+                'laneLabel' => 'Corsia follow-up',
+                'actionRoute' => $workspaceRoute,
+            ],
+            [
+                'key' => 'coverage',
+                'label' => 'Colma presidi attesi',
+                'count' => $coverageGapCount,
+                'status' => $coverageGapCount > 0 ? 'open' : 'aligned',
+                'helper' => $coverageGapCount > 0
+                    ? 'Restano gap o coperture parziali: la gestione misure e\' la corsia principale da chiudere.'
+                    : 'I presidi attesi risultano allineati su questo rischio.',
+                'actionLabel' => 'Apri corsia copertura',
+                'tone' => $coverageGapCount > 0 ? 'danger' : 'secondary',
+                'laneLabel' => 'Corsia copertura',
+                'actionRoute' => $measuresRoute,
+            ],
+            [
+                'key' => 'review',
+                'label' => 'Rientra nella review finale',
+                'count' => $openMeasuresCount,
+                'status' => $openMeasuresCount > 0 ? 'in_progress' : 'aligned',
+                'helper' => $openMeasuresCount > 0
+                    ? 'La review resta aperta finche\' ci sono ancora misure pendenti o da verificare.'
+                    : 'Il rischio e\' pronto per una rilettura finale o un semplice monitoraggio.',
+                'actionLabel' => 'Rileggi review',
+                'tone' => $openMeasuresCount > 0 ? 'primary' : 'secondary',
+                'laneLabel' => 'Corsia review',
+                'actionRoute' => $profileRoute,
+            ],
+        ];
+
         return [
             'decision' => $decision,
+            'operationalQueue' => $operationalQueue,
             'stats' => [
                 'openMeasures' => $openMeasuresCount,
                 'coverageGapCount' => $coverageGapCount,

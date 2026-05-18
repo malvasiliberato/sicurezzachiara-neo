@@ -471,27 +471,82 @@ class RiskMeasureController extends Controller
                 'label' => 'Completa i presidi attesi del rischio',
                 'helper' => 'Il rischio porta ancora con se\' coperture mancanti o parziali: qui conviene chiudere i gap prima di congelare la review.',
                 'tone' => 'danger',
+                'laneLabel' => 'Corsia copertura',
+                'actionLabel' => 'Apri gestione misure',
+                'actionRoute' => $reviewRoute,
             ],
             $pendingMeasures > 0 => [
                 'label' => 'Riallinea le misure ancora aperte',
                 'helper' => 'Le misure esistono ma alcune sono ancora da attuare o verificare: conviene lavorarle prima di tornare alla sola review.',
                 'tone' => 'warning',
+                'laneLabel' => 'Corsia misure',
+                'actionLabel' => 'Consolida misure aperte',
+                'actionRoute' => $reviewRoute,
             ],
             $summary['totalMeasures'] === 0 => [
                 'label' => 'Inserisci il primo presidio reale',
                 'helper' => 'Non risultano ancora misure collegate: puoi partire da un presidio atteso o creare una misura libera motivata dal consulente.',
                 'tone' => 'info',
+                'laneLabel' => 'Corsia copertura',
+                'actionLabel' => 'Aggiungi prima misura',
+                'actionRoute' => $reviewRoute,
             ],
             default => [
                 'label' => 'Copertura pronta per la review finale',
                 'helper' => 'Il rischio dispone gia\' di presidi leggibili: il passo successivo piu\' utile e\' confermare lo stato operativo in review.',
                 'tone' => 'success',
+                'laneLabel' => 'Corsia review',
+                'actionLabel' => 'Torna alla review',
+                'actionRoute' => $reviewRoute,
             ],
         };
+
+        $operationalQueue = [
+            [
+                'key' => 'coverage',
+                'label' => 'Colma presidi attesi',
+                'count' => $gapCount,
+                'status' => $gapCount > 0 ? 'open' : 'aligned',
+                'helper' => $gapCount > 0
+                    ? 'Prima chiudi i gap attesi o le coperture parziali del rischio.'
+                    : 'I presidi attesi risultano gia\' allineati.',
+                'actionLabel' => 'Rileggi review',
+                'tone' => $gapCount > 0 ? 'danger' : 'secondary',
+                'laneLabel' => 'Corsia copertura',
+                'actionRoute' => $reviewRoute,
+            ],
+            [
+                'key' => 'measures',
+                'label' => 'Consolida misure aperte',
+                'count' => $pendingMeasures,
+                'status' => $pendingMeasures > 0 ? 'open' : 'aligned',
+                'helper' => $pendingMeasures > 0
+                    ? 'Restano misure non attuate o da verificare prima della chiusura consulenziale.'
+                    : 'Non risultano misure pendenti su questo rischio.',
+                'actionLabel' => 'Apri registri contestuali',
+                'tone' => $pendingMeasures > 0 ? 'warning' : 'secondary',
+                'laneLabel' => 'Corsia misure',
+                'actionRoute' => $workspaceRoute,
+            ],
+            [
+                'key' => 'review',
+                'label' => 'Rientra nella review finale',
+                'count' => (int) ($summary['implementedMeasures'] ?? 0),
+                'status' => ($gapCount === 0 && $pendingMeasures === 0) ? 'ready' : 'in_progress',
+                'helper' => ($gapCount === 0 && $pendingMeasures === 0)
+                    ? 'Il rischio ha presidi leggibili: la review puo\' essere riallineata o chiusa.'
+                    : 'Torna in review quando copertura e stato misure sono piu\' allineati.',
+                'actionLabel' => 'Apri review',
+                'tone' => ($gapCount === 0 && $pendingMeasures === 0) ? 'success' : 'primary',
+                'laneLabel' => 'Corsia review',
+                'actionRoute' => $reviewRoute,
+            ],
+        ];
 
         return [
             'parentLabel' => $parentType === 'company' ? $parent->name : $parent->full_name,
             'decision' => $decision,
+            'operationalQueue' => $operationalQueue,
             'stats' => [
                 'pendingMeasures' => $pendingMeasures,
                 'gapCount' => $gapCount,

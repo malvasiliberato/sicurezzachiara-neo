@@ -93,6 +93,24 @@ const timelineBadges = {
   secondary: "bg-light text-body",
 };
 
+const queueToneBadgeClasses = {
+  danger: "bg-danger-subtle text-danger",
+  warning: "bg-warning-subtle text-warning",
+  primary: "bg-primary-subtle text-primary",
+  info: "bg-info-subtle text-info",
+  success: "bg-success-subtle text-success",
+  secondary: "bg-light text-body",
+};
+
+const queueToneButtonClasses = {
+  danger: "btn-soft-danger",
+  warning: "btn-soft-warning",
+  primary: "btn-soft-primary",
+  info: "btn-soft-info",
+  success: "btn-soft-success",
+  secondary: "btn-soft-secondary",
+};
+
 const measureStatusLabels = {
   implemented: "Attuata",
   not_implemented: "Non attuata",
@@ -267,9 +285,20 @@ const reviewHighlights = computed(() => [
             <span class="badge bg-info-subtle text-info text-uppercase mb-2">Bridge operativo del rischio</span>
             <h4 class="mb-1">{{ reviewBridge.decision.label }}</h4>
             <p class="text-muted mb-0">{{ reviewBridge.decision.helper }}</p>
+            <div v-if="reviewBridge.decision.laneLabel" class="mt-2">
+              <span class="badge" :class="queueToneBadgeClasses[reviewBridge.decision.tone] || 'bg-light text-body'">
+                {{ reviewBridge.decision.laneLabel }}
+              </span>
+            </div>
           </div>
               <div class="hstack gap-2 flex-wrap">
-                <Link :href="reviewBridge.actions.measuresRoute" class="btn btn-soft-primary btn-sm">Apri misure</Link>
+                <Link
+                  :href="reviewBridge.decision.actionRoute || reviewBridge.actions.measuresRoute"
+                  class="btn btn-sm"
+                  :class="queueToneButtonClasses[reviewBridge.decision.tone] || 'btn-soft-primary'"
+                >
+                  {{ reviewBridge.decision.actionLabel || "Apri misure" }}
+                </Link>
                 <Link :href="reviewBridge.actions.workspaceRoute" class="btn btn-soft-info btn-sm">Apri registri</Link>
                 <Link v-if="reviewBridge.actions.workerRoute" :href="reviewBridge.actions.workerRoute" class="btn btn-soft-primary btn-sm">Apri lavoratore</Link>
                 <Link v-if="reviewBridge.actions.companyRoute" :href="reviewBridge.actions.companyRoute" class="btn btn-soft-secondary btn-sm">Apri azienda</Link>
@@ -300,6 +329,29 @@ const reviewHighlights = computed(() => [
             </div>
           </BCol>
         </BRow>
+        <div v-if="reviewBridge.operationalQueue?.length" class="border-top pt-3 mt-3">
+          <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-2">
+            <div>
+              <h6 class="mb-1">Corsie operative della review</h6>
+              <p class="text-muted mb-0 fs-13">
+                Qui la review espone il prossimo passaggio utile tra follow-up, copertura e chiusura finale.
+              </p>
+            </div>
+          </div>
+          <div class="d-flex align-items-stretch gap-2 flex-wrap">
+            <Link
+              v-for="item in reviewBridge.operationalQueue"
+              :key="item.key"
+              :href="item.actionRoute"
+              class="btn btn-sm text-start"
+              :class="queueToneButtonClasses[item.tone] || 'btn-soft-secondary'"
+            >
+              <span class="fw-semibold d-block">{{ item.label }} <span class="ms-1">({{ item.count }})</span></span>
+              <span class="d-block fs-12" v-if="item.laneLabel">{{ item.laneLabel }}</span>
+              <span class="fs-12">{{ item.helper }}</span>
+            </Link>
+          </div>
+        </div>
       </BCardBody>
     </BCard>
 
