@@ -2,6 +2,65 @@
 import { Head, Link } from "@inertiajs/vue3";
 import Layout from "@/Layouts/main.vue";
 import PageHeader from "@/Components/page-header.vue";
+import SicurezzaDataTable from "@/Components/SicurezzaDataTable.vue";
+
+const actionTooltipId = (companyId, action) => `company-${companyId}-${action}-tooltip`;
+
+const columns = [
+  {
+    id: "company",
+    accessorFn: (row) => row.name,
+    header: "Azienda",
+    enableSorting: true,
+    meta: {
+      width: "25%",
+      slot: "company",
+    },
+  },
+  {
+    id: "industry",
+    accessorFn: (row) => row.industry || "",
+    header: "Settore",
+    enableSorting: true,
+    meta: {
+      width: "18%",
+      slot: "industry",
+    },
+  },
+  {
+    id: "setup",
+    accessorFn: (row) => row.area_one_journey?.completedSteps ?? 0,
+    header: "Setup Area 1",
+    enableSorting: true,
+    meta: {
+      width: "18%",
+      slot: "setup",
+    },
+  },
+  {
+    id: "nextStep",
+    accessorFn: (row) => row.area_one_journey?.nextStep?.label || "",
+    header: "Prossimo passo",
+    enableSorting: true,
+    meta: {
+      width: "27%",
+      slot: "nextStep",
+    },
+  },
+  {
+    id: "actions",
+    accessorFn: (row) => row.id,
+    header: "Azioni",
+    enableSorting: false,
+    meta: {
+      width: "12%",
+      slot: "actions",
+      thClass: "text-end",
+      tdClass: "text-end",
+      tdStyle: "white-space: nowrap;",
+    },
+  },
+];
 
 defineProps({
   tenant: {
@@ -13,6 +72,10 @@ defineProps({
     required: true,
   },
   summary: {
+    type: Object,
+    required: true,
+  },
+  areaOne: {
     type: Object,
     required: true,
   },
@@ -30,44 +93,6 @@ defineProps({
       {{ $page.props.flash.success }}
     </BAlert>
 
-    <BRow class="g-4 mb-4">
-      <BCol lg="8">
-        <BCard no-body class="overflow-hidden">
-          <BCardBody class="p-4">
-            <span class="badge bg-primary-subtle text-primary text-uppercase mb-3">SC-DOM-001</span>
-            <h2 class="mb-2">Contesto aziende del tenant</h2>
-            <p class="text-muted mb-4">
-              Le aziende sono clienti del tenant consulenziale. Da qui partiremo per agganciare sedi, lavoratori e,
-              piu' avanti, il presidio del rischio.
-            </p>
-            <div class="hstack gap-2 flex-wrap">
-              <span class="badge bg-light text-body">{{ tenant.name }}</span>
-              <span class="badge bg-soft-primary text-primary">{{ summary.companiesCount }} aziende</span>
-              <span class="badge bg-soft-info text-info">{{ summary.sitesCount }} sedi censite</span>
-            </div>
-          </BCardBody>
-        </BCard>
-      </BCol>
-      <BCol lg="4">
-        <BCard no-body class="h-100">
-          <BCardHeader class="border-0">
-            <div>
-              <h4 class="card-title mb-1">Azioni rapide</h4>
-              <p class="text-muted mb-0">Base minima per iniziare il perimetro cliente del tenant.</p>
-            </div>
-          </BCardHeader>
-          <BCardBody class="d-flex flex-column gap-3">
-            <Link :href="route('companies.create')" class="btn btn-primary">
-              Nuova azienda
-            </Link>
-            <Link :href="route('sicurezzachiara.ui-reference')" class="btn btn-soft-secondary">
-              Apri UI Reference
-            </Link>
-          </BCardBody>
-        </BCard>
-      </BCol>
-    </BRow>
-
     <BRow class="g-4">
       <BCol lg="12">
         <BCard no-body>
@@ -75,10 +100,9 @@ defineProps({
             <div class="d-flex align-items-center justify-content-between">
               <div>
                 <h4 class="card-title mb-1">Portafoglio aziende</h4>
-                <p class="text-muted mb-0">Elenco minimo operativo coerente con il tenant corrente.</p>
               </div>
-              <Link :href="route('companies.create')" class="btn btn-primary btn-sm">
-                Aggiungi azienda
+              <Link v-if="$page.props.tenantContext?.permissions?.can_manage_data" :href="route('companies.create')" class="btn btn-primary btn-sm">
+                Nuova azienda
               </Link>
             </div>
           </BCardHeader>
@@ -93,46 +117,70 @@ defineProps({
               <p class="text-muted mb-4">
                 Crea la prima azienda del tenant per iniziare a costruire il contesto operativo del progetto.
               </p>
-              <Link :href="route('companies.create')" class="btn btn-primary">Crea prima azienda</Link>
+              <Link v-if="$page.props.tenantContext?.permissions?.can_manage_data" :href="route('companies.create')" class="btn btn-primary">Crea prima azienda</Link>
             </div>
 
-            <div v-else class="table-responsive">
-              <table class="table align-middle table-nowrap mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th>Azienda</th>
-                    <th>Settore</th>
-                    <th>Contatti</th>
-                    <th>Citta'</th>
-                    <th>Sedi</th>
-                    <th class="text-end">Azioni</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="company in companies" :key="company.id">
-                    <td>
-                      <div class="fw-semibold">{{ company.name }}</div>
-                      <div class="text-muted fs-13">{{ company.legal_name || "Ragione sociale non specificata" }}</div>
-                    </td>
-                    <td>{{ company.industry || "Non indicato" }}</td>
-                    <td>
-                      <div>{{ company.contact_email || "Email non indicata" }}</div>
-                      <div class="text-muted fs-13">{{ company.contact_phone || "Telefono non indicato" }}</div>
-                    </td>
-                    <td>{{ company.city || "Non indicata" }}</td>
-                    <td>
-                      <span class="badge bg-info-subtle text-info">{{ company.sites_count }} sedi</span>
-                    </td>
-                    <td class="text-end">
-                      <div class="hstack gap-2 justify-content-end">
-                        <Link :href="route('companies.show', company.id)" class="btn btn-soft-primary btn-sm">Apri</Link>
-                        <Link :href="route('companies.edit', company.id)" class="btn btn-soft-secondary btn-sm">Modifica</Link>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <SicurezzaDataTable
+              v-else
+              :columns="columns"
+              :data="companies"
+              search-placeholder="Cerca azienda, settore o prossimo passo"
+              empty-title="Nessuna azienda trovata"
+              empty-text="Nessuna azienda corrisponde ai filtri correnti."
+            >
+              <template #cell-company="{ row }">
+                <div class="fw-semibold text-break">{{ row.name }}</div>
+                <div class="text-muted fs-13 text-break">{{ row.legal_name || "Ragione sociale non specificata" }}</div>
+              </template>
+
+              <template #cell-industry="{ row }">
+                <div class="text-break">{{ row.industry || "Non indicato" }}</div>
+              </template>
+
+              <template #cell-setup="{ row }">
+                <div class="fw-semibold">{{ row.area_one_journey.completedSteps }} / {{ row.area_one_journey.totalSteps }} step</div>
+                <div class="text-muted fs-13 d-flex flex-wrap gap-2">
+                  <span class="badge bg-info-subtle text-info">{{ row.sites_count }} sedi</span>
+                  <span class="badge bg-success-subtle text-success">{{ row.workers_count }} lavoratori</span>
+                </div>
+              </template>
+
+              <template #cell-nextStep="{ row }">
+                <div class="fw-semibold text-break">{{ row.area_one_journey.nextStep.label }}</div>
+                <div class="text-muted fs-13 text-break">{{ row.area_one_journey.nextStep.helper }}</div>
+              </template>
+
+              <template #cell-actions="{ row }">
+                <div class="d-inline-flex align-items-center gap-1 justify-content-end">
+                  <Link
+                    :id="actionTooltipId(row.id, 'show')"
+                    :href="route('companies.show', row.id)"
+                    class="btn btn-soft-primary btn-icon"
+                    style="width: 2.25rem; height: 2.25rem;"
+                    aria-label="Apri azienda"
+                  >
+                    <i class="ri-eye-line fs-16"></i>
+                  </Link>
+                  <BTooltip :target="actionTooltipId(row.id, 'show')" title="Apri azienda" />
+
+                  <Link
+                    v-if="$page.props.tenantContext?.permissions?.can_manage_data"
+                    :id="actionTooltipId(row.id, 'edit')"
+                    :href="route('companies.edit', row.id)"
+                    class="btn btn-soft-secondary btn-icon"
+                    style="width: 2.25rem; height: 2.25rem;"
+                    aria-label="Modifica azienda"
+                  >
+                    <i class="ri-pencil-line fs-16"></i>
+                  </Link>
+                  <BTooltip
+                    v-if="$page.props.tenantContext?.permissions?.can_manage_data"
+                    :target="actionTooltipId(row.id, 'edit')"
+                    title="Modifica azienda"
+                  />
+                </div>
+              </template>
+            </SicurezzaDataTable>
           </BCardBody>
         </BCard>
       </BCol>

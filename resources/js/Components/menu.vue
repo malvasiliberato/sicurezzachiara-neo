@@ -71,11 +71,38 @@ export default {
           <span>Dashboard</span>
           </Link>
         </li>
+        <li class="menu-title mt-2">
+          <span>Area 1 - Gestione azienda</span>
+        </li>
         <li class="nav-item">
           <Link class="nav-link menu-link" :href="route('companies.index')">
           <i class="ri-building-4-line"></i>
           <span>Aziende</span>
           </Link>
+        </li>
+        <li class="menu-title mt-2">
+          <span>Area 2 - Metodo di lavoro</span>
+        </li>
+        <li class="nav-item">
+          <Link class="nav-link menu-link" :href="route('job-roles.index')">
+          <i class="ri-briefcase-4-line"></i>
+          <span>Mansioni</span>
+          </Link>
+        </li>
+        <li class="nav-item">
+          <Link class="nav-link menu-link" :href="route('risk-catalog.index')">
+          <i class="ri-alert-line"></i>
+          <span>Catalogo rischi</span>
+          </Link>
+        </li>
+        <li class="nav-item">
+          <Link class="nav-link menu-link" :href="route('measure-registries.index')">
+          <i class="ri-shield-check-line"></i>
+          <span>Registri misure</span>
+          </Link>
+        </li>
+        <li class="menu-title mt-2">
+          <span>Supporto</span>
         </li>
         <li class="nav-item">
           <Link class="nav-link menu-link" href="/sicurezzachiara/ui-reference">

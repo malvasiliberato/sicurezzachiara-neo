@@ -17,6 +17,10 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  comuniConfig: {
+    type: Object,
+    default: null,
+  },
 });
 
 const form = useForm({
@@ -24,6 +28,7 @@ const form = useForm({
   site_code: props.site.site_code ?? "",
   is_headquarters: !!props.site.is_headquarters,
   address_line: props.site.address_line ?? "",
+  street_number: props.site.street_number ?? "",
   postal_code: props.site.postal_code ?? "",
   city: props.site.city ?? "",
   province: props.site.province ?? "",
@@ -54,6 +59,7 @@ const submit = () => {
         <form @submit.prevent="submit">
           <SiteForm
             :form="form"
+            :comuni-config="comuniConfig"
             submit-label="Salva sede"
             :cancel-href="route('companies.show', company.id)"
           />

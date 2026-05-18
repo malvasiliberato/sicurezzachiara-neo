@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Support\CurrentTenantResolver;
+use App\Support\TenantPermissionResolver;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -38,12 +39,20 @@ class HandleInertiaRequests extends Middleware
 
         if ($request->user() !== null) {
             $tenant = app(CurrentTenantResolver::class)->resolve($request->user());
+            $membership = app(TenantPermissionResolver::class)->resolveMembership($request->user(), $tenant);
 
             $tenantContext = [
                 'current' => [
                     'id' => $tenant->id,
                     'name' => $tenant->name,
                     'slug' => $tenant->slug,
+                ],
+                'membership' => [
+                    'role' => $membership?->role,
+                    'is_system_admin' => $request->user()->isSystemAdmin(),
+                ],
+                'permissions' => [
+                    'can_manage_data' => app(TenantPermissionResolver::class)->canManageTenantData($request->user(), $tenant),
                 ],
             ];
         }
@@ -52,6 +61,7 @@ class HandleInertiaRequests extends Middleware
             'tenantContext' => $tenantContext,
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
             ],
         ]);
     }

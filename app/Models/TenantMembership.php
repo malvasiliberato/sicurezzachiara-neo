@@ -36,4 +36,24 @@ class TenantMembership extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function isOwner(): bool
+    {
+        return $this->role === self::ROLE_OWNER;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN;
+    }
+
+    public function isMember(): bool
+    {
+        return $this->role === self::ROLE_MEMBER;
+    }
+
+    public function canManageTenantData(): bool
+    {
+        return $this->isOwner() || $this->isAdmin();
+    }
 }

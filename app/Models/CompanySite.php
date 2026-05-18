@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CompanySite extends Model
 {
@@ -16,6 +17,7 @@ class CompanySite extends Model
         'site_code',
         'is_headquarters',
         'address_line',
+        'street_number',
         'postal_code',
         'city',
         'province',
@@ -29,5 +31,20 @@ class CompanySite extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function primaryWorkers(): HasMany
+    {
+        return $this->hasMany(Worker::class, 'primary_site_id');
+    }
+
+    public function equipmentAssets(): HasMany
+    {
+        return $this->hasMany(EquipmentAsset::class, 'company_site_id');
+    }
+
+    public function workplaces(): HasMany
+    {
+        return $this->hasMany(Workplace::class, 'company_site_id');
     }
 }
