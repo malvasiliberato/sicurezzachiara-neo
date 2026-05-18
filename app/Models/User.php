@@ -31,6 +31,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'current_tenant_id',
+        'is_system_admin',
     ];
 
     /**
@@ -53,6 +54,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'email_verified_at' => 'datetime',
         'current_tenant_id' => 'integer',
+        'is_system_admin' => 'boolean',
     ];
 
     /**
@@ -84,5 +86,32 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(Tenant::class, 'tenant_memberships')
             ->withPivot(['role', 'joined_at'])
             ->withTimestamps();
+    }
+
+    public function isSystemAdmin(): bool
+    {
+        return (bool) $this->is_system_admin;
+    }
+
+    public function membershipForTenant(Tenant|int|null $tenant): ?TenantMembership
+    {
+        $tenantId = $tenant instanceof Tenant ? $tenant->id : $tenant;
+
+        if ($tenantId === null) {
+            return null;
+        }
+
+        $this->loadMissing('tenantMemberships');
+
+        return $this->tenantMemberships->firstWhere('tenant_id', $tenantId);
+    }
+
+    public function canManageTenantData(Tenant|int|null $tenant): bool
+    {
+        if ($this->isSystemAdmin()) {
+            return true;
+        }
+
+        return $this->membershipForTenant($tenant)?->canManageTenantData() ?? false;
     }
 }
