@@ -25,6 +25,7 @@ use App\Support\RiskProfileBuilder;
 use App\Support\RiskProfileOverrideManager;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class SicurezzaChiaraBaselineSeeder extends Seeder
 {
@@ -564,13 +565,15 @@ class SicurezzaChiaraBaselineSeeder extends Seeder
 
     private function upsertUser(string $email, string $name): User
     {
+        $password = env('SC_BASELINE_USER_PASSWORD') ?: Str::password(20);
+
         $user = User::query()->updateOrCreate(
             [
                 'email' => $email,
             ],
             [
                 'name' => $name,
-                'password' => Hash::make('password'),
+                'password' => Hash::make($password),
                 'is_system_admin' => false,
             ],
         );

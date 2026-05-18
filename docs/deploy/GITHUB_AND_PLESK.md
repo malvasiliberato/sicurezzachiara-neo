@@ -1,122 +1,297 @@
-# GitHub e Plesk - setup operativo consigliato
+# SicurezzaChiara - runbook GitHub + Plesk
 
-## Obiettivo
-Preparare il progetto per:
-- repository Git remoto su GitHub
-- versionamento corretto
-- deploy automatico futuro via Plesk/Git
+## Stato reale attuale
 
-## Audit sintetico iniziale
-Stato rilevato prima del setup:
-- nessuna directory `.git`
-- `.gitignore` Laravel gia' sano
-- `.env` correttamente escluso dal versionamento
-- `README.md` ancora generico Laravel
-- `.env.example` non allineato allo stack reale PostgreSQL
-- nessuna documentazione GitHub/Plesk dedicata
-- nessun workflow CI GitHub
+Questo repository non e' piu' in sola fase di preparazione deploy.
 
-## Stato desiderato dopo il setup
-- repository Git locale inizializzato su `main`
-- documentazione aggiornata
-- file sensibili esclusi
-- CI GitHub pronta
-- script post-deploy Plesk versionato
-- istruzioni operative chiare per collegare un nuovo remoto GitHub
+Stato confermato:
+- `main` contiene gia' il perimetro MVP pubblicato
+- `origin/main` e' allineato
+- `staging.sicurezzachiara.it` e' online
+- `area.sicurezzachiara.it` e' online
+- `area.sicurezzachiara.it` e' l'endpoint principale MVP
+- i database remoti sono gia' stati creati e riallineati dal locale
 
-## Nome repository remoto
-Non usare il repository storico:
-- `malvasiliberato/sicurezzachiara`
+Questo documento non descrive piu' un bootstrap teorico, ma il runbook operativo minimo da usare per rendere ripetibile il deploy.
 
-Creare invece un repository nuovo e distinto, per esempio:
-- `malvasiliberato/sicurezzachiara-platform`
+## Obiettivo del runbook
 
-## Procedura Git locale
-Nel progetto:
+Rendere governabile il deploy Git-based su Plesk senza:
+- introdurre deploy automatici distruttivi
+- eseguire migration non confermate
+- affidare la creazione del primo admin a password hardcoded nel repository
 
-```powershell
-git init -b main
-git add .
-git status
-```
+## Branch e sorgente di deploy
 
-Se vuoi collegare il nuovo remoto dopo averlo creato su GitHub:
+- branch applicativo di riferimento: `main`
+- document root attesa sul server: `repo/public`
+- sorgente applicativa attesa lato Plesk:
+  - clone Git del repository nel path del sottodominio
 
-```powershell
-git remote add origin https://github.com/malvasiliberato/sicurezzachiara-platform.git
-git branch -M main
-git push -u origin main
-```
+## Ambienti attivi
 
-## Collegamento a GitHub
-Questo setup prepara il repository, ma la creazione del remoto GitHub richiede:
-- repository creato nel tuo account
-- URL remoto finale
-- credenziali Git valide sulla macchina che fara' il push
+### staging
+- URL: `https://staging.sicurezzachiara.it`
+- uso: verifica tecnica e prove controllate
+- `APP_ENV` consigliato: `staging`
+- `APP_DEBUG` consigliato: `false`
 
-## CI GitHub
-Il workflow `.github/workflows/ci.yml` esegue:
-- composer install
-- npm ci
-- migrate su PostgreSQL
-- test Laravel
-- build Vite
+### area
+- URL: `https://area.sicurezzachiara.it`
+- uso: endpoint principale MVP
+- `APP_ENV` consigliato: `production`
+- `APP_DEBUG` consigliato: `false`
 
-Serve per validare i push prima del deploy Plesk.
+## Prerequisiti server
 
-## Plesk + Git - approccio consigliato
-Usare il repository Git remoto come sorgente.
-
-Prerequisiti sul server Plesk:
-- PHP 8.2+
+- PHP 8.2+ compatibile Laravel 12
 - Composer disponibile
-- Node.js disponibile se vuoi buildare asset sul server
-- accesso database PostgreSQL
-- Git extension attiva
+- Node.js e npm disponibili
+- PostgreSQL disponibile
+- Git extension Plesk o shell server disponibile
+- certificato SSL valido
+- redirect HTTPS attivo
 
-Secondo la documentazione Plesk, le Additional Deployment Actions possono eseguire comandi shell o script durante il deploy Git. Vedi:
-- [Plesk KB - Additional Deployment Actions](https://www.plesk.com/kb/docs/using-remote-git-hosting-enable-additional-deployment-actions/)
-- [Plesk Obsidian - Laravel Toolkit](https://docs.plesk.com/en-US/obsidian/administrator-guide/website-management/laravel-toolkit.80010/)
-- [Plesk CLI - Git repositories](https://docs.plesk.com/en-US/obsidian/cli-linux/using-command-line-utilities/git-git-repositories.75956/)
+## Strategia deploy raccomandata
+
+Strategia raccomandata:
+- Git deploy Plesk con build lato server
+
+Motivazione:
+- evita di versionare `public/build`
+- e' coerente con lo stato reale usato negli ambienti online
+- mantiene piu' semplice il ciclo `pull -> install -> build -> cache`
 
 ## Script post-deploy
-Il file versionato:
+
+File:
 - `scripts/deploy/plesk-post-deploy.sh`
 
-esegue in ordine:
-- pulizia cache applicativa
-- install dipendenze Composer produzione
-- eventuale build frontend se `npm` e' disponibile
-- migrazioni forzate
-- `storage:link` se manca
-- cache Laravel di produzione
+Uso raccomandato:
+
+```bash
+PATH="/opt/plesk/php/8.3/bin:/usr/local/bin:$PATH" COMPOSER_ALLOW_SUPERUSER=1 NPM_CI_FLAGS="--legacy-peer-deps" RUN_MIGRATIONS=0 bash ./scripts/deploy/plesk-post-deploy.sh .
+```
+
+### Cosa fa lo script
+
+- `artisan optimize:clear`
+- `composer install --no-dev --prefer-dist --optimize-autoloader`
+- `npm ci --legacy-peer-deps`
+- `npm run build`
+- `storage:link` se necessario
+- cache Laravel:
+  - `config:cache`
+  - `route:cache`
+  - `view:cache`
+  - `event:cache`
+- `queue:restart` non bloccante
+
+### Cosa NON fa di default
+
+- non esegue migration remote automaticamente
+- non esegue seed automaticamente
+- non crea admin automaticamente
+
+Per eseguire le migration nello script va passato esplicitamente:
+
+```bash
+RUN_MIGRATIONS=1
+```
+
+Per il primo staging/area e per i deploy controllati, la procedura raccomandata resta:
+- post-deploy script senza migration
+- verifica `.env`
+- backup DB
+- `php artisan migrate --force` eseguito manualmente e consapevolmente
 
 ## Additional Deployment Actions
-Il file:
+
+File:
 - `deployment/plesk/additional-deploy-actions.txt`
 
-contiene il comando pronto da copiare in Plesk.
+Valore raccomandato:
 
-## Scelte deliberate
-- `public/build` resta escluso da Git: il deploy presuppone build lato server oppure pipeline separata
-- nessun segreto viene versionato
-- nessun deploy effettivo viene eseguito in questa fase
+```bash
+NPM_CI_FLAGS="--legacy-peer-deps" RUN_MIGRATIONS=0 bash ./scripts/deploy/plesk-post-deploy.sh .
+```
 
-## Rischi residui
-- il remoto GitHub non viene creato automaticamente in questo ambiente
-- serve confermare sul Plesk target la disponibilita' di `node`, `npm`, `composer` e `php`
-- se Node non fosse disponibile in produzione, bisognera' decidere una strategia asset diversa
+Questo valore e' adatto sia a staging sia ad area come default prudente.
 
-## Checklist pre-push
-- verificare `.env` non tracciato
-- verificare `.env.example` coerente
-- verificare `npm run build`
-- verificare `php artisan test`
-- verificare migrazioni ok
+Nota operativa confermata sul server reale:
+- il `PATH` di default dell'utente deploy non espone sempre `php`
+- il fallback in script cerca automaticamente `/opt/plesk/php/8.3/bin/php`
+- resta comunque consigliato passare il `PATH` esplicito anche nelle additional deploy actions
+
+## Procedura deploy consigliata
+
+### 1. Verifica pre-deploy
+
+- `git rev-parse HEAD`
+- `php artisan test` o suite mirata
+- `npm run build`
+- verifica file `.env`
+- verifica DB target corretto
+- backup DB target
+
+### 2. Aggiornamento codice remoto
+
+Opzione A:
+- pull Git tramite Plesk
+
+Opzione B:
+- shell remota nel path `repo`
+- `git fetch origin`
+- `git checkout main`
+- `git pull --ff-only origin main`
+
+### 3. Post-deploy applicativo
+
+Eseguire:
+
+```bash
+PATH="/opt/plesk/php/8.3/bin:/usr/local/bin:$PATH" COMPOSER_ALLOW_SUPERUSER=1 NPM_CI_FLAGS="--legacy-peer-deps" RUN_MIGRATIONS=0 bash ./scripts/deploy/plesk-post-deploy.sh .
+```
+
+### 4. Migration controllata
+
+Solo dopo backup DB e verifica `.env`:
+
+```bash
+php artisan migrate --force
+```
+
+Non usare migration automatiche in `area` senza:
+- backup DB
+- verifica `.env`
+- decisione esplicita di finestra operativa
+
+### 5. Seed controllato
+
+#### Lookup e cataloghi core
+
+Sicuri come base:
+- `Ateco2025Seeder`
+- `ComuniElencoSeeder`
+- `SicurezzaChiaraCoreJobRolesSeeder`
+- `SicurezzaChiaraCoreEquipmentTypesSeeder`
+- `SicurezzaChiaraCoreWorkplaceTypesSeeder`
+- `SicurezzaChiaraCoreRiskCategoriesSeeder`
+- `SicurezzaChiaraCoreRisksSeeder`
+- `SicurezzaChiaraCoreSourceRiskMappingsSeeder`
+
+#### Seed baseline/showcase
+
+- `SicurezzaChiaraBaselineSeeder`: utile per ambiente locale o staging guidato
+- `SicurezzaChiaraShowcaseSeeder`: utile per demo/showcase controllato
+
+Classificazione operativa:
+- baseline/core seed = sicuro e necessario per ambienti locali o staging controllato
+- system admin seed = manuale e protetto da env dedicate
+- showcase seed = solo demo/staging
+
+Questi seed non vanno lanciati automaticamente in area senza decisione esplicita.
+
+#### DatabaseSeeder
+
+`DatabaseSeeder` e' volutamente prudente:
+- carica lookup statici e cataloghi core
+- non crea piu' automaticamente il system admin
+- in `local` puo' caricare la baseline
+- non lancia mai automaticamente il showcase seed
+
+## Strategia primo admin
+
+Strada raccomandata:
+- comando esplicito, non password hardcoded nel repository
+
+Comando:
+
+```bash
+php artisan sicurezzachiara:ensure-system-admin email@example.com --name="Nome Admin" --password="PASSWORD_TEMPORANEA"
+```
+
+Alternativa consentita:
+- `SystemAdminSeeder` solo se il server espone esplicitamente:
+  - `SC_SYSTEM_ADMIN_EMAIL`
+  - `SC_SYSTEM_ADMIN_NAME`
+  - `SC_SYSTEM_ADMIN_PASSWORD`
+
+Se le variabili non sono presenti, il seeder salta l'operazione.
+
+Classificazione ufficiale:
+- baseline/core seed = sicuro per locale e staging controllato
+- system admin seed = manuale e protetto da env
+- showcase seed = solo demo/staging
+
+## Variabili `.env` rilevanti
+
+Minime da verificare:
+- `APP_ENV`
+- `APP_DEBUG`
+- `APP_URL`
+- `DB_CONNECTION=pgsql`
+- `DB_HOST`
+- `DB_PORT`
+- `DB_DATABASE`
+- `DB_USERNAME`
+- `DB_PASSWORD`
+- `CACHE_DRIVER`
+- `SESSION_DRIVER`
+- `QUEUE_CONNECTION`
+
+Variabili opzionali per bootstrap admin:
+- `SC_SYSTEM_ADMIN_EMAIL`
+- `SC_SYSTEM_ADMIN_NAME`
+- `SC_SYSTEM_ADMIN_PASSWORD`
+
+Variabili opzionali per seed demo:
+- `SC_BASELINE_USER_PASSWORD`
+- `SC_SHOWCASE_USER_PASSWORD`
+
+Nessun segreto deve essere committato nel repository.
+
+## Warning noti
+
+- il progetto usa una combinazione frontend che richiede:
+  - `npm ci --legacy-peer-deps`
+- la build puo' mostrare il warning noto su:
+  - `lottie-web` / `eval`
+- il warning non e' attualmente bloccante
+
+## Backup e rollback
+
+### Backup minimo prima di ogni migration remota
+
+- dump DB
+- copia del file `.env`
+- annotazione commit Git deployato
+
+### Stop condition
+
+Fermarsi se:
+- `composer install` fallisce
+- `npm ci --legacy-peer-deps` fallisce
+- `npm run build` fallisce
+- login applicativo non funziona
+- `php artisan migrate --force` fallisce
+
+### Rollback minimo
+
+- ripristino DB
+- ritorno al commit precedente stabile
+- ripristino `.env`
+- riesecuzione cache Laravel
+
+## Cosa resta da decidere
+
+- se mantenere il dataset showcase attuale come base operativa di area
+- se ripulire o alleggerire i tenant locali clonati in remoto
+- quando promuovere eventualmente il dominio root
 
 ## Stato finale
-Setup locale e documentale pronto per:
-- GitHub repository remoto nuovo
-- deploy Git-based futuro via Plesk
 
-Nessun deploy eseguito in questa fase.
+Runbook riallineato allo stato reale:
+- deploy gia' avvenuti su staging e area
+- procedura resa piu' prudente e ripetibile
+- nessun deploy eseguito da questo documento

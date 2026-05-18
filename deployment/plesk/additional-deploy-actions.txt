@@ -1,1 +1,1 @@
-bash ./scripts/deploy/plesk-post-deploy.sh .
+PATH="/opt/plesk/php/8.3/bin:/usr/local/bin:$PATH" COMPOSER_ALLOW_SUPERUSER=1 NPM_CI_FLAGS="--legacy-peer-deps" RUN_MIGRATIONS=0 bash ./scripts/deploy/plesk-post-deploy.sh .

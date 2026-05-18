@@ -24,7 +24,7 @@ Il repository non e' una demo generica del template:
 ### 1. Dipendenze
 ```powershell
 composer install
-npm ci
+npm ci --legacy-peer-deps
 ```
 
 ### 2. Ambiente
@@ -41,13 +41,65 @@ Aggiornare poi almeno:
 ```powershell
 C:\laragon\bin\php\php-8.2.0-Win32-vs16-x64\php.exe artisan key:generate
 C:\laragon\bin\php\php-8.2.0-Win32-vs16-x64\php.exe artisan migrate
-C:\laragon\bin\php\php-8.2.0-Win32-vs16-x64\php.exe artisan db:seed --class=TenantBootstrapSeeder
+C:\laragon\bin\php\php-8.2.0-Win32-vs16-x64\php.exe artisan db:seed
 ```
+
+Il `DatabaseSeeder` popola anche i cataloghi statici versionati:
+- `database/data/ateco_2025.csv`
+- `database/data/comuni_elenco.csv`
+
+Per rieseguire solo il caricamento dei due cataloghi statici:
+```powershell
+C:\laragon\bin\php\php-8.2.0-Win32-vs16-x64\php.exe artisan db:seed --class=Database\\Seeders\\Ateco2025Seeder
+C:\laragon\bin\php\php-8.2.0-Win32-vs16-x64\php.exe artisan db:seed --class=Database\\Seeders\\ComuniElencoSeeder
+```
+
+Per popolare anche il dataset baseline locale:
+```powershell
+C:\laragon\bin\php\php-8.2.0-Win32-vs16-x64\php.exe artisan db:seed --class=Database\\Seeders\\SicurezzaChiaraBaselineSeeder
+```
+
+Note:
+- `SicurezzaChiaraBaselineSeeder` e' seed di baseline/core per ambiente locale o staging controllato
+- i suoi utenti demo non hanno password hardcoded; se serve una password nota, impostare `SC_BASELINE_USER_PASSWORD` in `.env`
+
+Per il dataset showcase:
+```powershell
+C:\laragon\bin\php\php-8.2.0-Win32-vs16-x64\php.exe artisan db:seed --class=Database\\Seeders\\SicurezzaChiaraShowcaseSeeder
+```
+
+Note:
+- `SicurezzaChiaraShowcaseSeeder` e' `demo/staging only`
+- non deve essere eseguito automaticamente in `area` o in produzione
+- i suoi utenti demo non hanno password hardcoded; se serve una password nota, impostare `SC_SHOWCASE_USER_PASSWORD` in `.env`
+
+Per creare o aggiornare il primo admin senza password nel repository:
+```powershell
+C:\laragon\bin\php\php-8.2.0-Win32-vs16-x64\php.exe artisan sicurezzachiara:ensure-system-admin email@example.com --name="Nome Admin" --password="PASSWORD_TEMPORANEA"
+```
+
+Per usare il seeder admin in modo manuale e protetto da env:
+- impostare `SC_SYSTEM_ADMIN_EMAIL`
+- impostare `SC_SYSTEM_ADMIN_NAME`
+- impostare `SC_SYSTEM_ADMIN_PASSWORD`
+- eseguire:
+
+```powershell
+C:\laragon\bin\php\php-8.2.0-Win32-vs16-x64\php.exe artisan db:seed --class=Database\\Seeders\\SystemAdminSeeder
+```
+
+Note:
+- `SystemAdminSeeder` non parte automaticamente dal `DatabaseSeeder`
+- non contiene password hardcoded
+- senza env dedicate il seeder salta l'operazione
 
 ### 4. Frontend
 ```powershell
 npm run build
 ```
+
+Nota operativa:
+- il progetto richiede `npm ci --legacy-peer-deps` anche negli ambienti Plesk gia' online
 
 ## Moduli gia' disponibili
 - Dashboard bootstrap: `/`
@@ -73,7 +125,17 @@ Oppure una variante equivalente, purche' distinta dal repository storico.
 ## Deploy futuro via Plesk + Git
 
 ### Obiettivo
-Il progetto e' predisposto per un deploy Git-based su Plesk, con:
+Il progetto e' predisposto per un deploy Git-based su Plesk ed e' gia' online su:
+- `https://staging.sicurezzachiara.it`
+- `https://area.sicurezzachiara.it`
+
+L'endpoint principale MVP e':
+- `https://area.sicurezzachiara.it`
+
+Il runbook operativo aggiornato e' qui:
+- [docs/deploy/GITHUB_AND_PLESK.md](docs/deploy/GITHUB_AND_PLESK.md)
+
+Il deploy resta governato da:
 - script di post-deploy versionato
 - istruzioni operative dedicate
 - CI GitHub per validare push e PR
@@ -82,6 +144,7 @@ Il progetto e' predisposto per un deploy Git-based su Plesk, con:
 - [docs/deploy/GITHUB_AND_PLESK.md](docs/deploy/GITHUB_AND_PLESK.md)
 - [scripts/deploy/plesk-post-deploy.sh](scripts/deploy/plesk-post-deploy.sh)
 - [deployment/plesk/additional-deploy-actions.txt](deployment/plesk/additional-deploy-actions.txt)
+- [app/Console/Commands/EnsureSystemAdminUserCommand.php](app/Console/Commands/EnsureSystemAdminUserCommand.php)
 
 ## Verifiche consigliate prima del push
 ```powershell
