@@ -273,6 +273,22 @@ const postureBadgeClasses = {
   info: "bg-info-subtle text-info",
   success: "bg-success-subtle text-success",
 };
+
+const nextStepButtonClasses = {
+  danger: "btn-danger",
+  warning: "btn-warning",
+  primary: "btn-primary",
+  secondary: "btn-soft-secondary",
+};
+
+const laneBadgeClasses = {
+  overdue: "bg-danger-subtle text-danger",
+  follow_up: "bg-warning-subtle text-warning",
+  reviews: "bg-primary-subtle text-primary",
+  coverage: "bg-info-subtle text-info",
+  profile: "bg-secondary-subtle text-secondary",
+  review: "bg-secondary-subtle text-secondary",
+};
 </script>
 
 <template>
@@ -613,8 +629,19 @@ const postureBadgeClasses = {
                 </td>
                 <td>{{ measure.due_date || "Non definita" }}</td>
                 <td class="text-end">
-                  <div v-if="measure.operational_posture" class="mb-2 text-end">
+                  <div
+                    v-if="measure.operational_posture || measure.next_step?.lane"
+                    class="mb-2 d-flex align-items-center justify-content-end gap-2 flex-wrap"
+                  >
                     <span
+                      v-if="measure.next_step?.lane"
+                      class="badge"
+                      :class="laneBadgeClasses[measure.next_step.lane.key] || 'bg-light text-body'"
+                    >
+                      {{ measure.next_step.lane.label }}
+                    </span>
+                    <span
+                      v-if="measure.operational_posture"
                       class="badge"
                       :class="postureBadgeClasses[measure.operational_posture.tone] || 'bg-light text-body'"
                     >
@@ -626,7 +653,8 @@ const postureBadgeClasses = {
                     <Link
                       v-if="measure.next_step?.route"
                       :href="measure.next_step.route"
-                      class="btn btn-soft-primary btn-sm"
+                      class="btn btn-sm"
+                      :class="nextStepButtonClasses[measure.next_step.tone] || 'btn-soft-primary'"
                     >
                       {{ measure.next_step.label }}
                     </Link>

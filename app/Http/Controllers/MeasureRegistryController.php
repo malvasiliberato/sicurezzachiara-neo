@@ -720,38 +720,87 @@ class MeasureRegistryController extends Controller
         string $profileRoute,
         ?string $measuresRoute,
     ): array {
+        $isOverdue = $measure->due_date !== null
+            && $measure->status !== RiskMeasure::STATUS_IMPLEMENTED
+            && $measure->due_date->isPast();
+
         if ($profileItem === null) {
             return [
                 'label' => 'Apri profilo',
                 'helper' => 'Il presidio e\' gia\' registrato ma non ha ancora un bridge operativo completo.',
                 'route' => $profileRoute,
+                'tone' => 'secondary',
+                'lane' => [
+                    'key' => 'profile',
+                    'label' => 'Corsia profilo',
+                ],
             ];
         }
 
         $binding = $expectedBinding['binding'] ?? null;
 
         return match (true) {
+            $isOverdue && $measure->status === RiskMeasure::STATUS_NOT_IMPLEMENTED => [
+                'label' => 'Chiudi scaduto in misure',
+                'helper' => 'La misura e\' oltre data e non ancora attuata: conviene chiuderla dalla gestione misure.',
+                'route' => $measuresRoute ?? $profileRoute,
+                'tone' => 'danger',
+                'lane' => [
+                    'key' => 'overdue',
+                    'label' => 'Corsia scaduti',
+                ],
+            ],
+            $isOverdue => [
+                'label' => 'Riallinea scaduto in review',
+                'helper' => 'Il presidio e\' oltre data: conviene riallineare review e decisione consulente sul rischio collegato.',
+                'route' => $this->reviewRoute($profileItem),
+                'tone' => 'danger',
+                'lane' => [
+                    'key' => 'overdue',
+                    'label' => 'Corsia scaduti',
+                ],
+            ],
+            $profileItem->hasOpenFollowUp() => [
+                'label' => 'Segui follow-up in review',
+                'helper' => 'Il rischio e\' ancora in carico operativo: conviene chiudere il follow-up prima di archiviare il presidio.',
+                'route' => $this->reviewRoute($profileItem),
+                'tone' => 'warning',
+                'lane' => [
+                    'key' => 'follow_up',
+                    'label' => 'Corsia follow-up',
+                ],
+            ],
             $measure->status === RiskMeasure::STATUS_NOT_IMPLEMENTED => [
                 'label' => 'Completa presidio in misure',
                 'helper' => $binding === 'direct_expected' || $binding === 'family_substitution'
                     ? 'Il rischio attende ancora questo presidio: conviene chiuderlo nella gestione misure.'
                     : 'La misura e\' ancora non attuata e va consolidata nel perimetro del rischio.',
                 'route' => $measuresRoute ?? $profileRoute,
-            ],
-            $profileItem->hasOpenFollowUp() => [
-                'label' => 'Segui follow-up in review',
-                'helper' => 'Il rischio e\' ancora in carico operativo: conviene chiudere il follow-up prima di archiviare il presidio.',
-                'route' => $this->reviewRoute($profileItem),
+                'tone' => 'danger',
+                'lane' => [
+                    'key' => 'coverage',
+                    'label' => 'Corsia copertura',
+                ],
             ],
             $measure->status === RiskMeasure::STATUS_TO_VERIFY => [
                 'label' => 'Verifica presidio in review',
                 'helper' => 'La misura e\' presente ma richiede ancora una validazione consulente sul rischio collegato.',
                 'route' => $this->reviewRoute($profileItem),
+                'tone' => 'primary',
+                'lane' => [
+                    'key' => 'reviews',
+                    'label' => 'Corsia review',
+                ],
             ],
             default => [
                 'label' => 'Rileggi contesto rischio',
                 'helper' => 'Il presidio e\' gia\' registrato: usa profilo e review per verificarne copertura e significato operativo.',
                 'route' => $this->reviewRoute($profileItem),
+                'tone' => 'secondary',
+                'lane' => [
+                    'key' => 'review',
+                    'label' => 'Corsia profilo',
+                ],
             ],
         };
     }

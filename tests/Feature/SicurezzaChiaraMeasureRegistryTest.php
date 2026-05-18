@@ -129,7 +129,9 @@ test('measure registry preserves dashboard workspace context with combined filte
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('sicurezzachiara/measure-registries/Index')
-            ->where('measures.0.next_step.label', 'Segui follow-up in review')
+            ->where('measures.0.next_step.label', 'Riallinea scaduto in review')
+            ->where('measures.0.next_step.lane.label', 'Corsia scaduti')
+            ->where('measures.0.next_step.tone', 'danger')
             ->where('measures.0.measures_route', $measuresRoute)
             ->where('measures.0.bridge_summary', fn (string $value) => str_contains($value, 'follow-up operativo aperto'))
         )
@@ -137,7 +139,7 @@ test('measure registry preserves dashboard workspace context with combined filte
         ->assertSee('origin=dashboard', false)
         ->assertSee('focus=follow_up', false)
         ->assertSee('Verifica schermature e protezioni linea di taglio')
-        ->assertSee('Segui follow-up in review')
+        ->assertSee('Riallinea scaduto in review')
         ->assertSee('measures_route', false)
         ->assertDontSee('Consegna DPI alta visibilita');
 });
@@ -168,7 +170,11 @@ test('measure registry exposes quick contextual shortcuts for the current worksp
             ->where('contextBridge.operationalQueue.1.label', 'Segui follow-up')
             ->where('contextBridge.operationalQueue.2.label', 'Copri rischi scoperti')
             ->where('measures.0.operational_posture.label', 'Presidio da attuare')
+            ->where('measures.0.next_step.lane.label', 'Corsia copertura')
+            ->where('measures.0.next_step.tone', 'danger')
             ->where('measures.1.operational_posture.label', 'Scaduto da chiudere')
+            ->where('measures.1.next_step.lane.label', 'Corsia scaduti')
+            ->where('measures.1.next_step.tone', 'danger')
             ->where('contextBridge.actions.dashboardRoute', route('dashboard', ['focus' => 'deadlines']))
         )
         ->assertSee('contextBridge', false)
