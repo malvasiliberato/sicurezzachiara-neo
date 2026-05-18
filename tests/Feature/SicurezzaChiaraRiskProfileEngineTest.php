@@ -399,6 +399,55 @@ test('company risk profile preserves the originating risk when reopened from the
         ->assertSee('risk_profile_item_id', false);
 });
 
+test('worker risk profile preserves the originating risk when reopened from the registry', function () {
+    $this->seed(SicurezzaChiaraShowcaseSeeder::class);
+
+    $user = User::query()->where('email', 'owner.showcase@sicurezzachiara.test')->firstOrFail();
+    $worker = Worker::query()->where('first_name', 'Marco')->where('last_name', 'Rossi')->firstOrFail();
+    $profileItem = RiskProfileItem::query()
+        ->where('profileable_type', Worker::class)
+        ->where('profileable_id', $worker->id)
+        ->whereHas('riskCatalogItem', fn ($query) => $query->where('name', 'Schiacciamento e cesoiamento'))
+        ->firstOrFail();
+
+    $this->actingAs($user)
+        ->get(route('workers.risk-profile.show', [
+            'worker' => $worker,
+            'origin' => 'measure_registry',
+            'focus' => 'follow_up',
+            'risk_profile_item_id' => $profileItem->id,
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('sicurezzachiara/risk-profiles/WorkerShow')
+            ->where('workspaceBridge.origin', 'measure_registry')
+            ->where('workspaceBridge.focus', 'follow_up')
+            ->where('workspaceBridge.originRisk.id', $profileItem->id)
+            ->where('workspaceBridge.originRisk.riskName', 'Schiacciamento e cesoiamento')
+            ->where('workspaceBridge.originRisk.reviewRoute', route('workers.risk-profile.review.show', [$worker, $profileItem]))
+            ->where('workspaceBridge.originRisk.measuresRoute', route('workers.risk-profile.measures.show', [$worker, $profileItem]))
+            ->where('workspaceBridge.originRisk.registryRoute', route('measure-registries.index', [
+                'company_id' => $worker->company_id,
+                'origin' => 'worker_risk_profile',
+                'focus' => 'follow_up',
+                'scope' => 'follow_up_open',
+                'family' => 'follow_up',
+                'risk_profile_item_id' => $profileItem->id,
+            ]))
+            ->where('workspaceBridge.actions.registryRoute', route('measure-registries.index', [
+                'company_id' => $worker->company_id,
+                'origin' => 'worker_risk_profile',
+                'focus' => 'follow_up',
+                'scope' => 'follow_up_open',
+                'family' => 'follow_up',
+                'risk_profile_item_id' => $profileItem->id,
+            ]))
+        )
+        ->assertSee('workspaceBridge', false)
+        ->assertSee('originRisk', false)
+        ->assertSee('risk_profile_item_id', false);
+});
+
 test('users cannot open company or worker risk profiles belonging to another tenant', function () {
     $user = User::factory()->create();
     $otherUser = User::factory()->create();

@@ -147,6 +147,26 @@ const starterPriorityBadge = {
                   <span class="badge bg-danger-subtle text-danger">{{ workspaceBridge.stats.uncoveredRisks }} rischi scoperti</span>
                 </div>
               </div>
+              <div v-if="workspaceBridge.originRisk" class="border rounded-3 p-3">
+                <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-2">
+                  <div>
+                    <span class="badge bg-soft-primary text-primary mb-2">Rischio di rientro</span>
+                    <div class="fw-semibold mb-1">{{ workspaceBridge.originRisk.riskName }}</div>
+                    <div class="text-muted fs-13">{{ workspaceBridge.originRisk.helper }}</div>
+                  </div>
+                </div>
+                <div class="hstack gap-2 flex-wrap">
+                  <Link :href="workspaceBridge.originRisk.reviewRoute" class="btn btn-soft-primary btn-sm">
+                    Torna alla review
+                  </Link>
+                  <Link :href="workspaceBridge.originRisk.measuresRoute" class="btn btn-soft-danger btn-sm">
+                    Torna alle misure
+                  </Link>
+                  <Link :href="workspaceBridge.originRisk.registryRoute" class="btn btn-soft-info btn-sm">
+                    Riapri registro rischio
+                  </Link>
+                </div>
+              </div>
               <div>
                 <span class="text-muted d-block fs-13">Rischi dedotti</span>
                 <span class="fw-semibold fs-5">{{ summary.totalRisks }}</span>

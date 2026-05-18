@@ -126,6 +126,7 @@ class RiskProfileController extends Controller
         $worker = $this->workerForTenant($tenant, $worker);
         $origin = $request->string('origin')->toString() ?: null;
         $focus = $request->string('focus')->toString() ?: null;
+        $originRiskProfileItemId = $request->integer('risk_profile_item_id') ?: null;
 
         $riskProfileBuilder->rebuildWorker($worker);
 
@@ -166,6 +167,10 @@ class RiskProfileController extends Controller
 
         $engine = $riskEngineSnapshotBuilder->buildForProfileable($worker);
         $engineRiskMap = collect($engine['risks'])->keyBy('id');
+        $originRiskProfileItem = $originRiskProfileItemId !== null
+            ? $worker->riskProfileItems->firstWhere('id', $originRiskProfileItemId)
+            : null;
+        abort_if($originRiskProfileItemId !== null && $originRiskProfileItem === null, 404);
         $coreStarterPack = $coreStarterPackContextBuilder->buildForWorkerSources(
             $worker->jobRoleAssignments->pluck('jobRole')->filter()->values(),
             $worker->equipmentExposures->pluck('equipmentAsset.equipmentType')->filter()->values(),
@@ -182,7 +187,7 @@ class RiskProfileController extends Controller
             'summary' => $engine['summary'],
             'engine' => collect($engine)->except('risks')->all(),
             'coreStarterPack' => $coreStarterPack,
-            'workspaceBridge' => $this->buildWorkerWorkspaceBridge($worker, $engine['summary'], $origin, $focus),
+            'workspaceBridge' => $this->buildWorkerWorkspaceBridge($worker, $engine['summary'], $origin, $focus, $originRiskProfileItem),
             'manualRiskOptions' => $overrideManager->availableManualRiskOptions($tenant, $worker),
             'formOptions' => $this->formOptions(),
         ]);
@@ -534,6 +539,7 @@ class RiskProfileController extends Controller
         array $summary,
         ?string $origin,
         ?string $focus,
+        ?RiskProfileItem $originRiskProfileItem,
     ): array {
         $effectiveFocus = $focus ?: match (true) {
             ($summary['followUpsOpen'] ?? 0) > 0 => 'follow_up',
@@ -541,6 +547,25 @@ class RiskProfileController extends Controller
             ($summary['missingExpectedMeasures'] ?? 0) > 0 => 'all',
             default => 'all',
         };
+        $returnFocus = $originRiskProfileItem !== null && $focus !== null ? $focus : $effectiveFocus;
+        $returnScope = $returnFocus === 'follow_up' ? 'follow_up_open' : 'attention';
+        $originRiskContext = $originRiskProfileItem
+            ? [
+                'id' => $originRiskProfileItem->id,
+                'riskName' => $originRiskProfileItem->riskCatalogItem?->name,
+                'reviewRoute' => route('workers.risk-profile.review.show', [$worker, $originRiskProfileItem]),
+                'measuresRoute' => route('workers.risk-profile.measures.show', [$worker, $originRiskProfileItem]),
+                'registryRoute' => route('measure-registries.index', array_filter([
+                    'company_id' => $worker->company_id,
+                    'origin' => 'worker_risk_profile',
+                    'focus' => $returnFocus,
+                    'scope' => $returnScope,
+                    'family' => $returnFocus === 'follow_up' ? 'follow_up' : null,
+                    'risk_profile_item_id' => $originRiskProfileItem->id,
+                ], fn ($value) => $value !== null && $value !== '')),
+                'helper' => 'Stai rientrando nel profilo lavoratore dopo il lavoro nel registro contestuale di questo rischio. Chiudi qui la rilettura operativa e riapri il presidio solo se serve.',
+            ]
+            : null;
 
         return [
             'origin' => $origin,
@@ -550,6 +575,7 @@ class RiskProfileController extends Controller
                 'measure_registry' => 'Registro misure',
                 default => null,
             },
+            'originRisk' => $originRiskContext,
             'focus' => $effectiveFocus,
             'focusLabel' => match ($effectiveFocus) {
                 'follow_up' => 'Follow-up',
@@ -587,13 +613,14 @@ class RiskProfileController extends Controller
                 'registryRoute' => route('measure-registries.index', array_filter([
                     'company_id' => $worker->company_id,
                     'origin' => 'worker_risk_profile',
-                    'focus' => $effectiveFocus,
-                    'scope' => $effectiveFocus === 'follow_up' ? 'follow_up_open' : 'attention',
-                    'family' => $effectiveFocus === 'follow_up' ? 'follow_up' : null,
+                    'focus' => $returnFocus,
+                    'scope' => $returnScope,
+                    'family' => $returnFocus === 'follow_up' ? 'follow_up' : null,
+                    'risk_profile_item_id' => $originRiskProfileItem?->id,
                 ], fn ($value) => $value !== null && $value !== '')),
                 'workerRoute' => route('workers.show', $worker),
                 'companyRoute' => route('companies.show', $worker->company_id),
-                'dashboardRoute' => route('dashboard', $effectiveFocus !== 'all' ? ['focus' => $effectiveFocus] : []),
+                'dashboardRoute' => route('dashboard', $returnFocus !== 'all' ? ['focus' => $returnFocus] : []),
             ],
         ];
     }
