@@ -169,6 +169,22 @@ const engineHighlights = computed(() => [
 ]);
 const operationsQueue = computed(() => props.contextBridge.operationalQueue ?? []);
 
+const queueToneBadgeClasses = {
+  danger: "bg-danger-subtle text-danger",
+  warning: "bg-warning-subtle text-warning",
+  primary: "bg-primary-subtle text-primary",
+  info: "bg-info-subtle text-info",
+  secondary: "bg-light text-body",
+};
+
+const queueToneButtonClasses = {
+  danger: "btn-soft-danger",
+  warning: "btn-soft-warning",
+  primary: "btn-soft-primary",
+  info: "btn-soft-info",
+  secondary: "btn-soft-secondary",
+};
+
 const riskSourceCards = computed(() => [
   {
     key: "workers",
@@ -694,7 +710,7 @@ const trackTitle = computed(() => domainTracks.find((track) => track.key === act
             <div class="px-3 py-2 border-bottom text-uppercase text-muted fw-semibold fs-12">
               Coda di lavoro minima
             </div>
-            <div
+              <div
               v-for="(item, index) in focusWorkQueue"
               :key="item.key"
               class="d-flex align-items-start justify-content-between gap-3 px-3 py-3"
@@ -704,11 +720,24 @@ const trackTitle = computed(() => domainTracks.find((track) => track.key === act
                 <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
                   <h6 class="mb-0">{{ item.label }}</h6>
                   <span class="badge bg-light text-body">{{ item.count }}</span>
+                  <span
+                    v-if="item.laneLabel"
+                    class="badge"
+                    :class="queueToneBadgeClasses[item.tone] || 'bg-light text-body'"
+                  >
+                    {{ item.laneLabel }}
+                  </span>
                 </div>
                 <div class="text-muted fs-13">{{ item.helper }}</div>
               </div>
               <div class="flex-shrink-0">
-                <Link :href="item.actionRoute" class="btn btn-sm btn-soft-primary">{{ item.actionLabel }}</Link>
+                <Link
+                  :href="item.actionRoute"
+                  class="btn btn-sm"
+                  :class="queueToneButtonClasses[item.tone] || 'btn-soft-primary'"
+                >
+                  {{ item.actionLabel }}
+                </Link>
               </div>
             </div>
           </div>
@@ -835,8 +864,19 @@ const trackTitle = computed(() => domainTracks.find((track) => track.key === act
                         {{ item.count }}
                       </span>
                     </div>
+                    <div v-if="item.laneLabel" class="mb-2">
+                      <span class="badge" :class="queueToneBadgeClasses[item.tone] || 'bg-light text-body'">
+                        {{ item.laneLabel }}
+                      </span>
+                    </div>
                     <div class="text-muted fs-13 mb-3">{{ item.helper }}</div>
-                    <Link :href="item.actionRoute" class="btn btn-sm btn-soft-primary">{{ item.actionLabel }}</Link>
+                    <Link
+                      :href="item.actionRoute"
+                      class="btn btn-sm"
+                      :class="queueToneButtonClasses[item.tone] || 'btn-soft-primary'"
+                    >
+                      {{ item.actionLabel }}
+                    </Link>
                   </div>
                 </div>
               </div>

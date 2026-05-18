@@ -605,6 +605,9 @@ test('company detail surfaces contextual core starter pack signals', function ()
             ->where('contextBridge.focus', 'deadlines')
             ->where('contextBridge.suggestedAction.label', 'Chiudi le scadenze aperte')
             ->where('contextBridge.workQueue.0.key', 'deadlines')
+            ->where('contextBridge.workQueue.0.label', 'Chiudi scaduti')
+            ->where('contextBridge.workQueue.0.laneLabel', 'Corsia scaduti')
+            ->where('contextBridge.workQueue.0.tone', 'danger')
             ->where('contextBridge.workQueue.0.count', $overdueMeasures)
             ->where('contextBridge.workQueue.0.actionRoute', route('measure-registries.index', [
                 'company_id' => $company->id,
@@ -614,6 +617,8 @@ test('company detail surfaces contextual core starter pack signals', function ()
             ]))
             ->where('contextBridge.workQueue', fn ($queue) => collect($queue)->contains(
                 fn (array $item) => $item['key'] === 'follow_up'
+                    && $item['label'] === 'Segui follow-up'
+                    && $item['laneLabel'] === 'Corsia follow-up'
                     && $item['count'] === $engineSummary['followUpsOpen']
             ))
             ->where('contextBridge.actions.reviewRoute', route('companies.risk-profile.review.show', [
@@ -637,10 +642,16 @@ test('company detail surfaces contextual core starter pack signals', function ()
                 'focus' => 'deadlines',
             ]))
             ->where('contextBridge.operationalQueue.0.key', 'reviews')
+            ->where('contextBridge.operationalQueue.0.label', 'Riallinea review')
+            ->where('contextBridge.operationalQueue.0.laneLabel', 'Corsia review')
             ->where('contextBridge.operationalQueue.0.count', $engineSummary['reviewsDue'])
             ->where('contextBridge.operationalQueue.1.key', 'follow_up')
+            ->where('contextBridge.operationalQueue.1.label', 'Segui follow-up')
+            ->where('contextBridge.operationalQueue.1.laneLabel', 'Corsia follow-up')
             ->where('contextBridge.operationalQueue.1.count', $engineSummary['followUpsOpen'])
             ->where('contextBridge.operationalQueue.2.key', 'registries')
+            ->where('contextBridge.operationalQueue.2.label', 'Chiudi scaduti')
+            ->where('contextBridge.operationalQueue.2.laneLabel', 'Corsia scaduti')
             ->where('contextBridge.operationalQueue.2.count', $engineSummary['pendingMeasures'])
             ->where('contextBridge.stats.uncoveredRisks', $engineSummary['uncoveredRisks'])
             ->where('contextBridge.stats.reviewsDue', $engineSummary['reviewsDue'])
