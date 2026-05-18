@@ -13,6 +13,10 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  companyContext: {
+    type: Object,
+    required: true,
+  },
   coreStarterPack: {
     type: Object,
     required: true,

@@ -260,6 +260,22 @@ class WorkerController extends Controller
         return Inertia::render('sicurezzachiara/workers/Show', [
             'tenant' => $tenant->only(['id', 'name', 'slug']),
             'worker' => $worker,
+            'companyContext' => [
+                'id' => $worker->company_id,
+                'name' => $worker->company?->name,
+                'workersRoute' => route('workers.index', ['company_id' => $worker->company_id]),
+                'showRoute' => route('companies.show', $worker->company_id),
+                'configureRoute' => route('companies.edit', $worker->company_id),
+                'riskProfileRoute' => route('companies.risk-profile.show', [
+                    'company' => $worker->company_id,
+                    'origin' => 'worker_show',
+                ]),
+                'registryRoute' => route('measure-registries.index', [
+                    'company_id' => $worker->company_id,
+                    'origin' => 'worker_show',
+                    'scope' => 'attention',
+                ]),
+            ],
             'coreStarterPack' => $coreStarterPack,
             'contextBridge' => $workerBridge,
             'governanceContext' => $this->buildWorkerGovernanceContext($worker),

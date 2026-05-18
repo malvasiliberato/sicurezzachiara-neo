@@ -208,6 +208,10 @@ test('worker create and edit preserve company workflow context when opened from 
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('sicurezzachiara/workers/Show')
+            ->where('companyContext.name', 'Metalnova S.r.l.')
+            ->where('companyContext.workersRoute', route('workers.index', ['company_id' => $company->id]))
+            ->where('companyContext.showRoute', route('companies.show', $company))
+            ->where('companyContext.configureRoute', route('companies.edit', $company))
             ->where('contextBridge.actions.workersRoute', route('workers.index', ['company_id' => $company->id]))
         );
 });
