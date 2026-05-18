@@ -483,6 +483,7 @@ class MeasureRegistryController extends Controller
                     'visibleMeasures' => $visibleCompanyMeasures->count(),
                     'overdueMeasures' => $overdueVisibleMeasures,
                     'followUpsOpen' => $followUpsOpen,
+                    'reviewsDue' => $reviewsDue,
                     'uncoveredRisks' => $uncoveredRisks,
                 ],
                 'actions' => [
@@ -494,6 +495,59 @@ class MeasureRegistryController extends Controller
                     ]),
                     'dashboardRoute' => $workspaceContext['backRoute'],
                 ],
+                'operationalQueue' => collect([
+                    $overdueVisibleMeasures > 0 ? [
+                        'key' => 'overdue',
+                        'label' => 'Chiudi scaduti',
+                        'count' => $overdueVisibleMeasures,
+                        'helper' => 'Le misure oltre data chiedono chiusura o riallineamento operativo nel registro.',
+                        'route' => route('measure-registries.index', array_filter([
+                            'company_id' => $companyId,
+                            'scope' => 'overdue',
+                            'origin' => $origin,
+                            'focus' => 'deadlines',
+                        ], fn ($value) => $value !== null && $value !== '')),
+                        'tone' => 'danger',
+                    ] : null,
+                    $followUpsOpen > 0 ? [
+                        'key' => 'follow_up',
+                        'label' => 'Segui follow-up',
+                        'count' => $followUpsOpen,
+                        'helper' => 'Ci sono rischi ancora aperti che chiedono chiusura consulenziale o operativa.',
+                        'route' => route('measure-registries.index', array_filter([
+                            'company_id' => $companyId,
+                            'family' => 'follow_up',
+                            'scope' => 'follow_up_open',
+                            'origin' => $origin,
+                            'focus' => 'follow_up',
+                        ], fn ($value) => $value !== null && $value !== '')),
+                        'tone' => 'warning',
+                    ] : null,
+                    $reviewsDue > 0 ? [
+                        'key' => 'reviews',
+                        'label' => 'Riallinea review',
+                        'count' => $reviewsDue,
+                        'helper' => 'Prima di archiviare i presidi conviene chiudere le review in scadenza.',
+                        'route' => route('companies.risk-profile.show', [
+                            'company' => $companyId,
+                            'origin' => 'measure_registry',
+                            'focus' => 'reviews',
+                        ]),
+                        'tone' => 'primary',
+                    ] : null,
+                    $uncoveredRisks > 0 ? [
+                        'key' => 'coverage',
+                        'label' => 'Copri rischi scoperti',
+                        'count' => $uncoveredRisks,
+                        'helper' => 'Restano rischi senza presidio sufficiente: apri il profilo e chiudi i gap.',
+                        'route' => route('companies.risk-profile.show', [
+                            'company' => $companyId,
+                            'origin' => 'measure_registry',
+                            'focus' => 'all',
+                        ]),
+                        'tone' => 'info',
+                    ] : null,
+                ])->filter()->values()->all(),
             ];
         }
 

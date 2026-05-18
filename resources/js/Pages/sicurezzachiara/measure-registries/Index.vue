@@ -258,6 +258,13 @@ const starterPriorityBadge = {
   medium: "bg-warning-subtle text-warning",
   low: "bg-success-subtle text-success",
 };
+
+const queueToneClasses = {
+  danger: "btn-soft-danger",
+  warning: "btn-soft-warning",
+  primary: "btn-soft-primary",
+  info: "btn-soft-info",
+};
 </script>
 
 <template>
@@ -353,6 +360,28 @@ const starterPriorityBadge = {
               <Link v-if="contextBridge.actions.dashboardRoute" :href="contextBridge.actions.dashboardRoute" class="btn btn-soft-warning btn-sm">
                 Torna alla dashboard
               </Link>
+            </div>
+            <div v-if="contextBridge.operationalQueue?.length" class="border-top pt-3 mt-3">
+              <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-2">
+                <div>
+                  <h6 class="mb-1">Coda di chiusura</h6>
+                  <p class="text-muted mb-0 fs-13">
+                    Parti dalla pista piu' urgente e usa il registro solo come corsia di lavoro, non come portfolio generale.
+                  </p>
+                </div>
+              </div>
+              <div class="d-flex align-items-stretch gap-2 flex-wrap">
+                <Link
+                  v-for="item in contextBridge.operationalQueue"
+                  :key="item.key"
+                  :href="item.route"
+                  class="btn btn-sm text-start"
+                  :class="queueToneClasses[item.tone] || 'btn-soft-secondary'"
+                >
+                  <span class="fw-semibold d-block">{{ item.label }} <span class="ms-1">({{ item.count }})</span></span>
+                  <span class="fs-12">{{ item.helper }}</span>
+                </Link>
+              </div>
             </div>
           </div>
 
