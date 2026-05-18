@@ -184,6 +184,11 @@ class MeasureRegistryController extends Controller
                 $profileRoute,
                 $measuresRoute,
             );
+            $operationalPosture = $this->registryMeasureOperationalPosture(
+                $measure,
+                $profileItem,
+                $expectedBinding,
+            );
 
             return [
                 ...$measure->toArray(),
@@ -209,6 +214,7 @@ class MeasureRegistryController extends Controller
                 'measures_route' => $measuresRoute,
                 'profile_route' => $profileRoute,
                 'bridge_summary' => $this->registryMeasureBridgeSummary($measure, $profileItem, $expectedBinding),
+                'operational_posture' => $operationalPosture,
                 'next_step' => $nextStep,
             ];
         })->values();
@@ -665,6 +671,46 @@ class MeasureRegistryController extends Controller
         return $parts->isNotEmpty()
             ? $parts->implode(' | ')
             : 'Apri il contesto rischio per rileggere il ruolo operativo della misura.';
+    }
+
+    private function registryMeasureOperationalPosture(
+        RiskMeasure $measure,
+        ?RiskProfileItem $profileItem,
+        ?array $expectedBinding,
+    ): array {
+        $isOverdue = $measure->due_date !== null
+            && $measure->status !== RiskMeasure::STATUS_IMPLEMENTED
+            && $measure->due_date->isPast();
+
+        return match (true) {
+            $isOverdue => [
+                'label' => 'Scaduto da chiudere',
+                'tone' => 'danger',
+                'helper' => 'Conviene chiudere o riallineare subito il presidio oltre data.',
+            ],
+            $profileItem?->hasOpenFollowUp() => [
+                'label' => 'Follow-up da chiudere',
+                'tone' => 'warning',
+                'helper' => 'Il rischio e\' ancora aperto: prima chiudi il follow-up operativo.',
+            ],
+            $measure->status === RiskMeasure::STATUS_NOT_IMPLEMENTED => [
+                'label' => 'Presidio da attuare',
+                'tone' => 'danger',
+                'helper' => $expectedBinding['binding'] === 'direct_expected' || $expectedBinding['binding'] === 'family_substitution'
+                    ? 'Il presidio atteso non e\' ancora stato chiuso nel contesto rischio.'
+                    : 'La misura esiste ma resta da attuare nel flusso operativo.',
+            ],
+            $measure->status === RiskMeasure::STATUS_TO_VERIFY => [
+                'label' => 'Validazione consulente',
+                'tone' => 'primary',
+                'helper' => 'La misura e\' presente, ma chiede ancora una conferma professionale.',
+            ],
+            default => [
+                'label' => 'Presidio registrato',
+                'tone' => 'success',
+                'helper' => 'Il presidio risulta registrato: rileggi il contesto solo se serve un affinamento.',
+            ],
+        };
     }
 
     private function buildRegistryMeasureBridge(

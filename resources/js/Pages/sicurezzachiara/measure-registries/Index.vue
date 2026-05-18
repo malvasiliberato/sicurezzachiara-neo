@@ -265,6 +265,14 @@ const queueToneClasses = {
   primary: "btn-soft-primary",
   info: "btn-soft-info",
 };
+
+const postureBadgeClasses = {
+  danger: "bg-danger-subtle text-danger",
+  warning: "bg-warning-subtle text-warning",
+  primary: "bg-primary-subtle text-primary",
+  info: "bg-info-subtle text-info",
+  success: "bg-success-subtle text-success",
+};
 </script>
 
 <template>
@@ -605,6 +613,14 @@ const queueToneClasses = {
                 </td>
                 <td>{{ measure.due_date || "Non definita" }}</td>
                 <td class="text-end">
+                  <div v-if="measure.operational_posture" class="mb-2 text-end">
+                    <span
+                      class="badge"
+                      :class="postureBadgeClasses[measure.operational_posture.tone] || 'bg-light text-body'"
+                    >
+                      {{ measure.operational_posture.label }}
+                    </span>
+                  </div>
                   <div class="hstack gap-2 justify-content-end flex-wrap">
                     <Link :href="measure.profile_route" class="btn btn-soft-secondary btn-sm">Profilo</Link>
                     <Link
@@ -622,8 +638,8 @@ const queueToneClasses = {
                       Misure rischio
                     </Link>
                   </div>
-                  <div v-if="measure.next_step?.helper" class="text-muted fs-12 mt-2 text-end">
-                    {{ measure.next_step.helper }}
+                  <div class="text-muted fs-12 mt-2 text-end">
+                    {{ measure.operational_posture?.helper || measure.next_step?.helper }}
                   </div>
                 </td>
               </tr>

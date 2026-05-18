@@ -167,6 +167,8 @@ test('measure registry exposes quick contextual shortcuts for the current worksp
             ->where('contextBridge.operationalQueue.0.label', 'Chiudi scaduti')
             ->where('contextBridge.operationalQueue.1.label', 'Segui follow-up')
             ->where('contextBridge.operationalQueue.2.label', 'Copri rischi scoperti')
+            ->where('measures.0.operational_posture.label', 'Presidio da attuare')
+            ->where('measures.1.operational_posture.label', 'Scaduto da chiudere')
             ->where('contextBridge.actions.dashboardRoute', route('dashboard', ['focus' => 'deadlines']))
         )
         ->assertSee('contextBridge', false)
