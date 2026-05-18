@@ -102,7 +102,7 @@ class RiskProfileController extends Controller
             'tenant' => $tenant->only(['id', 'name', 'slug']),
             'company' => [
                 ...$company->toArray(),
-                'risk_profile_items' => $this->transformProfileItems($company->riskProfileItems, $company->riskMeasures, 'company', $engineRiskMap),
+                'risk_profile_items' => $this->transformProfileItems($company->riskProfileItems, $company->riskMeasures, 'company', $engineRiskMap, $focus),
             ],
             'summary' => $engine['summary'],
             'engine' => collect($engine)->except('risks')->all(),
@@ -177,7 +177,7 @@ class RiskProfileController extends Controller
             'tenant' => $tenant->only(['id', 'name', 'slug']),
             'worker' => [
                 ...$worker->toArray(),
-                'risk_profile_items' => $this->transformProfileItems($worker->riskProfileItems, $worker->riskMeasures, 'worker', $engineRiskMap),
+                'risk_profile_items' => $this->transformProfileItems($worker->riskProfileItems, $worker->riskMeasures, 'worker', $engineRiskMap, $focus),
             ],
             'summary' => $engine['summary'],
             'engine' => collect($engine)->except('risks')->all(),
@@ -188,14 +188,14 @@ class RiskProfileController extends Controller
         ]);
     }
 
-    private function transformProfileItems($profileItems, $measures, string $parentType, $engineRiskMap): array
+    private function transformProfileItems($profileItems, $measures, string $parentType, $engineRiskMap, ?string $focus): array
     {
         $measuresByRisk = $measures
             ->groupBy('risk_catalog_item_id')
             ->map(fn ($items) => $items->values());
 
         return $profileItems
-            ->map(function (RiskProfileItem $profileItem) use ($measuresByRisk, $parentType, $engineRiskMap) {
+            ->map(function (RiskProfileItem $profileItem) use ($measuresByRisk, $parentType, $engineRiskMap, $focus) {
                 $profileMeasures = $measuresByRisk->get($profileItem->risk_catalog_item_id, collect());
                 $engineRisk = $engineRiskMap->get($profileItem->id, []);
 
@@ -233,8 +233,18 @@ class RiskProfileController extends Controller
                         ? route('companies.risk-profile.measures.show', [$profileItem->profileable_id, $profileItem->id])
                         : route('workers.risk-profile.measures.show', [$profileItem->profileable_id, $profileItem->id]),
                     'review_route' => $parentType === 'company'
-                        ? route('companies.risk-profile.review.show', [$profileItem->profileable_id, $profileItem->id])
-                        : route('workers.risk-profile.review.show', [$profileItem->profileable_id, $profileItem->id]),
+                        ? route('companies.risk-profile.review.show', [
+                            $profileItem->profileable_id,
+                            $profileItem->id,
+                            'origin' => 'company_risk_profile',
+                            'focus' => $focus ?: 'all',
+                        ])
+                        : route('workers.risk-profile.review.show', [
+                            $profileItem->profileable_id,
+                            $profileItem->id,
+                            'origin' => 'worker_risk_profile',
+                            'focus' => $focus ?: 'all',
+                        ]),
                 ];
             })
             ->values()

@@ -130,6 +130,15 @@ test('company and worker risk profiles are deduced from mapped domain sources', 
             ->where('workspaceBridge.operationalQueue.2.key', 'deadlines')
             ->where('workspaceBridge.operationalQueue.2.laneLabel', 'Corsia scaduti')
             ->where('workspaceBridge.operationalQueue.2.tone', 'secondary')
+            ->where('company.risk_profile_items', fn ($items) => collect($items)->contains(
+                fn (array $item) => ($item['risk_catalog_item']['name'] ?? null) === 'Schiacciamento e cesoiamento'
+                    && ($item['review_route'] ?? null) === route('companies.risk-profile.review.show', [
+                        'company' => $company,
+                        'riskProfileItem' => $item['id'],
+                        'origin' => 'company_risk_profile',
+                        'focus' => 'reviews',
+                    ])
+            ))
         )
         ->assertSee('engine', false)
         ->assertSee('workspaceBridge', false)

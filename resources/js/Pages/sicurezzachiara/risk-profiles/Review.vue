@@ -329,6 +329,30 @@ const reviewHighlights = computed(() => [
             </div>
           </BCol>
         </BRow>
+        <div v-if="reviewBridge.returnContext" class="border rounded p-3 mt-3">
+          <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+            <div>
+              <div class="text-uppercase text-muted fs-12 fw-semibold mb-2">Rientro finale</div>
+              <div class="fw-semibold mb-1">{{ reviewBridge.returnContext.label }}</div>
+              <div class="text-muted fs-13">{{ reviewBridge.returnContext.helper }}</div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span v-if="reviewBridge.originLabel" class="badge bg-soft-info text-info">{{ reviewBridge.originLabel }}</span>
+              <span v-if="reviewBridge.focusLabel" class="badge bg-light text-body">Focus: {{ reviewBridge.focusLabel }}</span>
+            </div>
+          </div>
+          <div class="hstack gap-2 flex-wrap mt-3">
+            <Link :href="reviewBridge.returnContext.profileRoute" class="btn btn-soft-secondary btn-sm">
+              Torna al profilo
+            </Link>
+            <Link :href="reviewBridge.returnContext.measuresRoute" class="btn btn-soft-primary btn-sm">
+              Torna alle misure
+            </Link>
+            <Link :href="reviewBridge.returnContext.workspaceRoute" class="btn btn-soft-info btn-sm">
+              Apri registro contestuale
+            </Link>
+          </div>
+        </div>
         <div v-if="reviewBridge.operationalQueue?.length" class="border-top pt-3 mt-3">
           <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-2">
             <div>

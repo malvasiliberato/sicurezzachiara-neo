@@ -44,6 +44,8 @@ class RiskProfileReviewController extends Controller
     ): Response {
         $tenant = $tenantResolver->resolve($request->user());
         $company = $this->companyForTenant($tenant, $company);
+        $origin = $request->string('origin')->toString() ?: null;
+        $focus = $request->string('focus')->toString() ?: null;
         $riskProfileBuilder->rebuildCompany($company);
         $riskProfileItem = $this->profileItemForProfileable($company, $riskProfileItem);
 
@@ -52,6 +54,8 @@ class RiskProfileReviewController extends Controller
             profileable: $company,
             parentType: 'company',
             riskProfileItem: $riskProfileItem,
+            origin: $origin,
+            focus: $focus,
         );
     }
 
@@ -153,6 +157,8 @@ class RiskProfileReviewController extends Controller
     ): Response {
         $tenant = $tenantResolver->resolve($request->user());
         $worker = $this->workerForTenant($tenant, $worker);
+        $origin = $request->string('origin')->toString() ?: null;
+        $focus = $request->string('focus')->toString() ?: null;
         $riskProfileBuilder->rebuildWorker($worker);
         $riskProfileItem = $this->profileItemForProfileable($worker, $riskProfileItem);
 
@@ -161,6 +167,8 @@ class RiskProfileReviewController extends Controller
             profileable: $worker,
             parentType: 'worker',
             riskProfileItem: $riskProfileItem,
+            origin: $origin,
+            focus: $focus,
         );
     }
 
@@ -258,6 +266,8 @@ class RiskProfileReviewController extends Controller
         Company|Worker $profileable,
         string $parentType,
         RiskProfileItem $riskProfileItem,
+        ?string $origin,
+        ?string $focus,
     ): Response {
         $riskProfileItem->loadMissing(['riskCatalogItem.category', 'sources', 'operationalOwner:id,name', 'reviews.actor:id,name', 'reviews.operationalOwner:id,name']);
 
@@ -272,7 +282,7 @@ class RiskProfileReviewController extends Controller
         $coreStarterPack = app(CoreStarterPackContextBuilder::class)->buildForProfileSources($riskProfileItem->sources);
         $measureBindings = collect($engineContext['measureBindings'] ?? [])->keyBy('measure_id');
         $companyId = $parentType === 'company' ? $profileable->id : $profileable->company?->id;
-        $focus = $riskProfileItem->follow_up_status ? 'follow_up' : 'reviews';
+        $workspaceFocus = $riskProfileItem->follow_up_status ? 'follow_up' : 'reviews';
         $expectedSummary = $engineContext['expectedMeasures']['summary'] ?? [];
         $openMeasuresCount = $measures->whereIn('status', [
             'not_implemented',
@@ -280,14 +290,26 @@ class RiskProfileReviewController extends Controller
         ])->count();
         $missingExpectedMeasures = (int) ($expectedSummary['missing_count'] ?? 0);
         $partialExpectedMeasures = (int) ($expectedSummary['partial_count'] ?? 0);
+        $profileFocus = $focus ?: ($riskProfileItem->follow_up_status ? 'follow_up' : 'all');
+        $profileRoute = $parentType === 'company'
+            ? route('companies.risk-profile.show', [
+                'company' => $profileable,
+                'origin' => $origin === 'measure_registry' ? 'measure_registry' : 'company_risk_profile',
+                'focus' => $profileFocus,
+                'risk_profile_item_id' => $riskProfileItem->id,
+            ])
+            : route('workers.risk-profile.show', [
+                'worker' => $profileable,
+                'origin' => $origin === 'measure_registry' ? 'measure_registry' : 'worker_risk_profile',
+                'focus' => $profileFocus,
+            ]);
+
         $reviewBridge = $this->buildReviewBridge(
             riskProfileItem: $riskProfileItem,
             openMeasuresCount: $openMeasuresCount,
             missingExpectedMeasures: $missingExpectedMeasures,
             partialExpectedMeasures: $partialExpectedMeasures,
-            profileRoute: $parentType === 'company'
-                ? route('companies.risk-profile.show', $profileable)
-                : route('workers.risk-profile.show', $profileable),
+            profileRoute: $profileRoute,
             measuresRoute: $parentType === 'company'
                 ? route('companies.risk-profile.measures.show', [$profileable, $riskProfileItem])
                 : route('workers.risk-profile.measures.show', [$profileable, $riskProfileItem]),
@@ -296,15 +318,17 @@ class RiskProfileReviewController extends Controller
                 'owner_user_id' => $riskProfileItem->operational_owner_user_id,
                 'risk_profile_item_id' => $riskProfileItem->id,
                 'origin' => 'risk_review',
-                'focus' => $focus,
+                'focus' => $workspaceFocus,
                 'family' => $riskProfileItem->follow_up_status ? 'follow_up' : null,
                 'scope' => $riskProfileItem->follow_up_status ? 'follow_up_open' : 'attention',
             ], fn ($value) => $value !== null && $value !== '')),
-            dashboardRoute: route('dashboard', ['focus' => $focus]),
+            dashboardRoute: route('dashboard', ['focus' => $workspaceFocus]),
             workerRoute: $parentType === 'worker' ? route('workers.show', $profileable) : null,
             companyRoute: $parentType === 'company'
                 ? route('companies.show', $profileable)
                 : ($profileable->company ? route('companies.show', $profileable->company) : null),
+            origin: $origin,
+            focus: $focus,
         );
 
         return Inertia::render('sicurezzachiara/risk-profiles/Review', [
@@ -392,9 +416,7 @@ class RiskProfileReviewController extends Controller
                     'review_updated' => 'Valutazione aggiornata',
                 ],
             ],
-            'backRoute' => $parentType === 'company'
-                ? route('companies.risk-profile.show', $profileable)
-                : route('workers.risk-profile.show', $profileable),
+            'backRoute' => $profileRoute,
             'saveRoute' => $parentType === 'company'
                 ? route('companies.risk-profile.review.update', [$profileable, $riskProfileItem])
                 : route('workers.risk-profile.review.update', [$profileable, $riskProfileItem]),
@@ -419,9 +441,26 @@ class RiskProfileReviewController extends Controller
         string $dashboardRoute,
         ?string $workerRoute,
         ?string $companyRoute,
+        ?string $origin,
+        ?string $focus,
     ): array {
         $followUpOpen = $riskProfileItem->hasOpenFollowUp();
         $coverageGapCount = $missingExpectedMeasures + $partialExpectedMeasures;
+        $originLabel = match ($origin) {
+            'company_risk_profile' => 'Profilo rischio azienda',
+            'worker_risk_profile' => 'Profilo rischio lavoratore',
+            'measure_registry' => 'Registro contestuale',
+            'dashboard' => 'Dashboard operativa',
+            default => null,
+        };
+        $focusLabel = match ($focus) {
+            'follow_up' => 'Follow-up',
+            'reviews' => 'Review',
+            'deadlines' => 'Scadenze',
+            'urgent' => 'Urgenti',
+            'all' => 'Vista completa',
+            default => null,
+        };
 
         $decision = match (true) {
             $followUpOpen && $openMeasuresCount > 0 => [
@@ -501,7 +540,18 @@ class RiskProfileReviewController extends Controller
         ];
 
         return [
+            'origin' => $origin,
+            'originLabel' => $originLabel,
+            'focus' => $focus,
+            'focusLabel' => $focusLabel,
             'decision' => $decision,
+            'returnContext' => [
+                'label' => 'Rientro nel profilo',
+                'helper' => 'Chiudi qui la lettura consulenziale e rientra nel profilo con lo stesso focus operativo da cui sei partito.',
+                'profileRoute' => $profileRoute,
+                'workspaceRoute' => $workspaceRoute,
+                'measuresRoute' => $measuresRoute,
+            ],
             'operationalQueue' => $operationalQueue,
             'stats' => [
                 'openMeasures' => $openMeasuresCount,

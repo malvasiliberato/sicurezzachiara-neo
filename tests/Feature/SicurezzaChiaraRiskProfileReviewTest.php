@@ -221,6 +221,57 @@ test('review page exposes a light operational timeline for the risk', function (
         ->assertSee('Operatore di produzione');
 });
 
+test('review page preserves profile origin and focus for the final return loop', function () {
+    ['owner' => $owner, 'company' => $company, 'worker' => $worker, 'profileItem' => $profileItem] = createRiskReviewFixture();
+
+    RiskMeasure::query()->create([
+        'profileable_type' => Worker::class,
+        'profileable_id' => $worker->id,
+        'risk_catalog_item_id' => $profileItem->risk_catalog_item_id,
+        'family' => RiskMeasure::FAMILY_TECHNICAL,
+        'title' => 'Ripristino protezioni bordo pressa',
+        'status' => RiskMeasure::STATUS_TO_VERIFY,
+    ]);
+
+    $this->withoutVite();
+
+    $this->actingAs($owner)
+        ->get(route('workers.risk-profile.review.show', [
+            'worker' => $worker,
+            'riskProfileItem' => $profileItem,
+            'origin' => 'worker_risk_profile',
+            'focus' => 'follow_up',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('sicurezzachiara/risk-profiles/Review')
+            ->where('reviewBridge.origin', 'worker_risk_profile')
+            ->where('reviewBridge.originLabel', 'Profilo rischio lavoratore')
+            ->where('reviewBridge.focus', 'follow_up')
+            ->where('reviewBridge.focusLabel', 'Follow-up')
+            ->where('reviewBridge.returnContext.profileRoute', route('workers.risk-profile.show', [
+                'worker' => $worker,
+                'origin' => 'worker_risk_profile',
+                'focus' => 'follow_up',
+            ]))
+            ->where('backRoute', route('workers.risk-profile.show', [
+                'worker' => $worker,
+                'origin' => 'worker_risk_profile',
+                'focus' => 'follow_up',
+            ]))
+            ->where('contextRoutes.workspace', route('measure-registries.index', [
+                'company_id' => $company->id,
+                'risk_profile_item_id' => $profileItem->id,
+                'origin' => 'risk_review',
+                'focus' => 'reviews',
+                'scope' => 'attention',
+            ]))
+        )
+        ->assertSee('reviewBridge', false)
+        ->assertSee('returnContext', false)
+        ->assertSee('worker_risk_profile', false);
+});
+
 test('risk review history stores consultant snapshots over time', function () {
     ['owner' => $owner, 'worker' => $worker, 'profileItem' => $profileItem] = createRiskReviewFixture();
 
