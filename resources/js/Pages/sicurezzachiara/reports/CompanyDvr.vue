@@ -40,6 +40,10 @@ defineProps({
     type: Object,
     required: true,
   },
+  lightScope: {
+    type: Object,
+    required: true,
+  },
   riskEntries: {
     type: Array,
     required: true,
@@ -97,6 +101,13 @@ const scopeToneBadges = {
   warning: "bg-warning-subtle text-warning",
 };
 
+const guidanceToneBadges = {
+  danger: "bg-danger-subtle text-danger",
+  warning: "bg-warning-subtle text-warning",
+  info: "bg-info-subtle text-info",
+  primary: "bg-primary-subtle text-primary",
+};
+
 const printReport = () => {
   window.print();
 };
@@ -104,9 +115,9 @@ const printReport = () => {
 
 <template>
   <Layout>
-    <Head :title="`DVR iniziale - ${company.name}`" />
+    <Head :title="`DVR light - ${company.name}`" />
 
-    <PageHeader title="DVR iniziale" pageTitle="SicurezzaChiara" />
+    <PageHeader title="DVR light" pageTitle="SicurezzaChiara" />
 
     <BRow class="g-4 mb-4">
       <BCol xl="8">
@@ -115,8 +126,8 @@ const printReport = () => {
             <span class="badge bg-danger-subtle text-danger text-uppercase mb-3">Output derivato dal dominio</span>
             <h2 class="mb-2">{{ company.name }}</h2>
             <p class="text-muted fs-15 mb-3">
-              Questo DVR iniziale non nasce da compilazione statica: aggrega contesto aziendale, sorgenti del rischio,
-              profilo rischio e stato dei presidi attualmente registrati nel sistema.
+              Questo DVR light non nasce da compilazione statica: aggrega contesto aziendale, sorgenti del rischio,
+              profilo rischio e stato dei presidi attualmente registrati nel sistema, mantenendo esplicito il suo perimetro consultabile.
             </p>
             <div class="hstack gap-2 flex-wrap">
               <span class="badge bg-light text-body">{{ tenant.name }}</span>
@@ -184,6 +195,70 @@ const printReport = () => {
         </BRow>
       </BCardBody>
     </BCard>
+
+    <BRow class="g-4 mb-4">
+      <BCol xl="4">
+        <BCard no-body class="h-100">
+          <BCardHeader class="border-0 pb-0">
+            <h4 class="card-title mb-1">{{ lightScope.title }}</h4>
+            <p class="text-muted mb-0">{{ lightScope.helper }}</p>
+          </BCardHeader>
+          <BCardBody class="pt-3">
+            <div class="vstack gap-3">
+              <div v-for="item in lightScope.reads" :key="item.label" class="border rounded p-3">
+                <div class="fw-semibold mb-1">{{ item.label }}</div>
+                <div class="text-muted fs-13">{{ item.helper }}</div>
+              </div>
+            </div>
+          </BCardBody>
+        </BCard>
+      </BCol>
+
+      <BCol xl="4">
+        <BCard no-body class="h-100">
+          <BCardHeader class="border-0 pb-0">
+            <h4 class="card-title mb-1">Cosa non sostituisce ancora</h4>
+            <p class="text-muted mb-0">Serve a evitare overclaim documentale e a tenere chiaro il perimetro attuale del prodotto.</p>
+          </BCardHeader>
+          <BCardBody class="pt-3">
+            <div class="vstack gap-3">
+              <div v-for="item in lightScope.notIncluded" :key="item.label" class="border rounded p-3">
+                <div class="fw-semibold mb-1">{{ item.label }}</div>
+                <div class="text-muted fs-13">{{ item.helper }}</div>
+              </div>
+            </div>
+          </BCardBody>
+        </BCard>
+      </BCol>
+
+      <BCol xl="4">
+        <BCard no-body class="h-100">
+          <BCardHeader class="border-0 pb-0">
+            <h4 class="card-title mb-1">Per renderlo piu' utile adesso</h4>
+            <p class="text-muted mb-0">Le prossime mosse restano nel workspace operativo: profilo rischio, registri, review e follow-up.</p>
+          </BCardHeader>
+          <BCardBody class="pt-3">
+            <div v-if="lightScope.nextSteps.length" class="vstack gap-3">
+              <div v-for="item in lightScope.nextSteps" :key="item.label" class="border rounded p-3">
+                <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                  <div class="fw-semibold">{{ item.label }}</div>
+                  <span class="badge" :class="guidanceToneBadges[item.tone] || 'bg-light text-body'">
+                    Azione
+                  </span>
+                </div>
+                <div class="text-muted fs-13">{{ item.helper }}</div>
+              </div>
+            </div>
+            <div v-else class="border rounded p-3">
+              <div class="fw-semibold mb-1">Rileggi profilo e registri per conferma finale</div>
+              <div class="text-muted fs-13">
+                Il DVR light e' coerente col dominio corrente: puoi usarlo come lettura consultabile e rientrare nel workspace per la verifica finale del consulente.
+              </div>
+            </div>
+          </BCardBody>
+        </BCard>
+      </BCol>
+    </BRow>
 
     <BCard no-body class="mb-4">
       <BCardBody class="p-3">

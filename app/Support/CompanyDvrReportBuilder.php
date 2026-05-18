@@ -233,6 +233,11 @@ class CompanyDvrReportBuilder
             $workersWithoutPrimaryJobRole,
             $engine['summary'],
         );
+        $lightScope = $this->buildLightScope(
+            $workersWithoutPrimarySite,
+            $workersWithoutPrimaryJobRole,
+            $engine['summary'],
+        );
 
         return [
             'tenant' => $tenant->only(['id', 'name', 'slug']),
@@ -279,6 +284,7 @@ class CompanyDvrReportBuilder
             'coverageSignals' => $coverageSignals,
             'contextBridge' => $dvrBridge,
             'documentScope' => $documentScope,
+            'lightScope' => $lightScope,
             'riskEntries' => $riskEntries,
             'measureEntries' => $measureEntries,
             'timelineEntries' => $timelineEntries,
@@ -332,6 +338,84 @@ class CompanyDvrReportBuilder
             'status' => $needsAttention ? 'Da completare' : 'Coerente col contesto attuale',
             'statusTone' => $needsAttention ? 'warning' : 'success',
             'items' => $items,
+        ];
+    }
+
+    private function buildLightScope(
+        int $workersWithoutPrimarySite,
+        int $workersWithoutPrimaryJobRole,
+        array $summary,
+    ): array {
+        $nextSteps = collect();
+
+        if ($workersWithoutPrimarySite > 0 || $workersWithoutPrimaryJobRole > 0) {
+            $nextSteps->push([
+                'label' => 'Completa il contesto che alimenta il DVR light',
+                'helper' => 'Sedi prevalenti e mansioni prevalenti restano dati chiave per una lettura piu\' piena del documento.',
+                'tone' => 'warning',
+            ]);
+        }
+
+        if (($summary['missingExpectedMeasures'] ?? 0) > 0 || ($summary['overdueMeasures'] ?? 0) > 0) {
+            $nextSteps->push([
+                'label' => 'Completa i gap che tengono il DVR light in pressione',
+                'helper' => (($summary['missingExpectedMeasures'] ?? 0)).' gap attesi e '.(($summary['overdueMeasures'] ?? 0)).' misure scadute restano aperti.',
+                'tone' => 'danger',
+            ]);
+        }
+
+        if (($summary['reviewsDue'] ?? 0) > 0) {
+            $nextSteps->push([
+                'label' => 'Riallinea le review che sostengono il documento',
+                'helper' => (($summary['reviewsDue'] ?? 0)).' review dovute incidono sulla lettura aggiornata del DVR light.',
+                'tone' => 'info',
+            ]);
+        }
+
+        if (($summary['followUpsOpen'] ?? 0) > 0) {
+            $nextSteps->push([
+                'label' => 'Chiudi i follow-up ancora aperti',
+                'helper' => (($summary['followUpsOpen'] ?? 0)).' follow-up restano in carico operativo e vanno chiusi nel workspace.',
+                'tone' => 'primary',
+            ]);
+        }
+
+        return [
+            'title' => 'Cosa mostra gia\' il DVR light',
+            'helper' => 'Questa pagina e\' una lettura consultabile del dominio corrente: aiuta il consulente a capire stato, copertura e prossime azioni senza simulare un modulo documentale maturo.',
+            'reads' => [
+                [
+                    'label' => 'Contesto e sorgenti gia\' censite',
+                    'helper' => 'Legge azienda, lavoratori, mansioni, macchinari e luoghi gia\' presenti nel sistema.',
+                ],
+                [
+                    'label' => 'Profilo rischio attuale',
+                    'helper' => 'Mostra rischi attivi, copertura attesa, priorita\' e stato operativo corrente.',
+                ],
+                [
+                    'label' => 'Presidi, scadenze e registri collegati',
+                    'helper' => 'Rende visibili misure, gap, scaduti e collegamenti ai registri famiglia.',
+                ],
+                [
+                    'label' => 'Review, follow-up e timeline operativa',
+                    'helper' => 'Rilegge la continuita\' del lavoro consulenziale gia\' registrato nel dominio.',
+                ],
+            ],
+            'notIncluded' => [
+                [
+                    'label' => 'Non sostituisce un DVR documentale maturo',
+                    'helper' => 'Non promette un impaginato normativo completo o un workflow editoriale avanzato.',
+                ],
+                [
+                    'label' => 'Non genera oggi un PDF strutturato di prodotto',
+                    'helper' => 'La stampa browser resta solo un appoggio operativo, non un export finale governato.',
+                ],
+                [
+                    'label' => 'Non sostituisce il giudizio professionale finale',
+                    'helper' => 'Il consulente resta l\'ultima parola sulla valutazione e sulla lettura conclusiva del rischio.',
+                ],
+            ],
+            'nextSteps' => $nextSteps->values()->all(),
         ];
     }
 
