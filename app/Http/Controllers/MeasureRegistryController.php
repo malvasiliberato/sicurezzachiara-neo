@@ -29,6 +29,7 @@ class MeasureRegistryController extends Controller
         $scope = $request->string('scope')->toString() ?: 'all';
         $companyId = $request->integer('company_id') ?: null;
         $ownerUserId = $request->integer('owner_user_id') ?: null;
+        $originRiskProfileItemId = $request->integer('risk_profile_item_id') ?: null;
         $origin = $request->string('origin')->toString() ?: null;
         $focus = $request->string('focus')->toString() ?: null;
 
@@ -132,6 +133,10 @@ class MeasureRegistryController extends Controller
         $riskProfileItemsByKey = $riskProfileItems->keyBy(
             fn (RiskProfileItem $item) => $this->riskLinkKey($item->profileable_type, (int) $item->profileable_id, (int) $item->risk_catalog_item_id),
         );
+        $originRiskProfileItem = $originRiskProfileItemId !== null
+            ? $riskProfileItems->firstWhere('id', $originRiskProfileItemId)
+            : null;
+        abort_if($originRiskProfileItemId !== null && $originRiskProfileItem === null, 404);
         $measuresByRiskContext = $measures
             ->groupBy(fn (RiskMeasure $measure) => $this->riskLinkKey(
                 $measure->profileable_type,
@@ -165,7 +170,7 @@ class MeasureRegistryController extends Controller
                 ->values())
             ->pluck('name', 'id');
 
-        $measures = $measures->map(function (RiskMeasure $measure) use ($companyLabels, $workerLabels, $workerCompanyIds, $riskProfileItemsByKey, $measureBindingsById) {
+        $measures = $measures->map(function (RiskMeasure $measure) use ($companyLabels, $workerLabels, $workerCompanyIds, $riskProfileItemsByKey, $measureBindingsById, $originRiskProfileItemId) {
             $label = $measure->profileable_type === Worker::class
                 ? $workerLabels->get($measure->profileable_id)
                 : $companyLabels->get($measure->profileable_id);
@@ -210,6 +215,8 @@ class MeasureRegistryController extends Controller
                 'follow_up_owner_name' => $profileItem?->operationalOwner?->name,
                 'follow_up_notes' => $profileItem?->follow_up_notes,
                 'expected_binding' => $expectedBinding,
+                'risk_profile_item_id' => $profileItem?->id,
+                'is_origin_risk' => $profileItem?->id !== null && (int) $profileItem->id === (int) $originRiskProfileItemId,
                 'review_route' => $profileItem ? $this->reviewRoute($profileItem) : null,
                 'measures_route' => $measuresRoute,
                 'profile_route' => $profileRoute,
@@ -351,6 +358,29 @@ class MeasureRegistryController extends Controller
 
         $isCompanyScoped = $companyId !== null;
         $selectedCompanyName = $companyId ? $companyLabels->get($companyId) : null;
+        $originRiskContext = $originRiskProfileItem
+            ? [
+                'id' => $originRiskProfileItem->id,
+                'riskName' => $originRiskProfileItem->riskCatalogItem?->name,
+                'parentTypeLabel' => $originRiskProfileItem->profileable_type === Worker::class ? 'Lavoratore' : 'Azienda',
+                'parentLabel' => $originRiskProfileItem->profileable_type === Worker::class
+                    ? $workerLabels->get($originRiskProfileItem->profileable_id)
+                    : $companyLabels->get($originRiskProfileItem->profileable_id),
+                'companyName' => $originRiskProfileItem->profileable_type === Worker::class
+                    ? $companyLabels->get($workerCompanyIds->get($originRiskProfileItem->profileable_id))
+                    : $companyLabels->get($originRiskProfileItem->profileable_id),
+                'reviewRoute' => $this->reviewRoute($originRiskProfileItem),
+                'measuresRoute' => $this->measureManageRoute($originRiskProfileItem),
+                'profileRoute' => $originRiskProfileItem->profileable_type === Worker::class
+                    ? route('workers.risk-profile.show', $originRiskProfileItem->profileable_id)
+                    : route('companies.risk-profile.show', $originRiskProfileItem->profileable_id),
+                'helper' => match ($origin) {
+                    'risk_review' => 'Stai lavorando sulle misure aperte di questa review: chiudi il tratto operativo e poi rientra nel giudizio consulenziale.',
+                    'risk_measures' => 'Questo registro estende la stessa gestione misure del rischio da cui sei partito, mantenendo lo stesso perimetro aziendale.',
+                    default => 'Questo rischio resta il riferimento operativo da cui e\' stato aperto il registro corrente.',
+                },
+            ]
+            : null;
 
         $workspaceContext = [
             'mode' => $isCompanyScoped ? 'company_scoped' : 'portfolio',
@@ -361,6 +391,7 @@ class MeasureRegistryController extends Controller
             'focus' => $focus,
             'focusLabel' => $focus ? ($focusLabels[$focus] ?? $focus) : null,
             'companyName' => $selectedCompanyName,
+            'originRisk' => $originRiskContext,
             'ownerName' => $ownerUserId
                 ? $ownerOptions->firstWhere('value', $ownerUserId)['label'] ?? null
                 : null,
@@ -370,6 +401,7 @@ class MeasureRegistryController extends Controller
                 : null,
             'narrative' => match (true) {
                 $isCompanyScoped => 'Stai lavorando solo dentro '.$selectedCompanyName.'. Qui conviene stringere il registro per stato operativo o referente, non riaprire il portfolio.',
+                $originRiskContext !== null => 'Stai lavorando dentro il registro contestuale di '.$originRiskContext['riskName'].'. Chiudi qui i presidi aperti e poi rientra nel rischio di origine.',
                 collect([
                     $origin ? 'Origine: '.($originLabels[$origin] ?? $origin) : null,
                     $focus ? 'Focus: '.($focusLabels[$focus] ?? $focus) : null,

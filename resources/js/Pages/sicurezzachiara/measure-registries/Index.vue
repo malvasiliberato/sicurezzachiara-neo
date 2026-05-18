@@ -120,6 +120,7 @@ const contextBadges = computed(() => {
     props.workspaceContext.focusLabel ? `Focus: ${props.workspaceContext.focusLabel}` : null,
     props.workspaceContext.activeScopeLabel ? `Vista: ${props.workspaceContext.activeScopeLabel}` : null,
     props.workspaceContext.companyName ? `Azienda: ${props.workspaceContext.companyName}` : null,
+    props.workspaceContext.originRisk?.riskName ? `Rischio: ${props.workspaceContext.originRisk.riskName}` : null,
     props.workspaceContext.ownerName ? `Referente: ${props.workspaceContext.ownerName}` : null,
   ].filter(Boolean);
 });
@@ -409,6 +410,30 @@ const laneBadgeClasses = {
             </div>
           </div>
 
+          <div v-if="workspaceContext.originRisk" class="border rounded-3 bg-white p-3 mb-3">
+            <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap mb-3">
+              <div>
+                <h6 class="mb-1">Rischio di origine</h6>
+                <p class="text-muted mb-0 fs-13">
+                  {{ workspaceContext.originRisk.riskName }} | {{ workspaceContext.originRisk.parentTypeLabel }}: {{ workspaceContext.originRisk.parentLabel }}
+                </p>
+              </div>
+              <span class="badge bg-soft-primary text-primary">Rientro contestuale attivo</span>
+            </div>
+            <div class="text-muted fs-13 mb-3">{{ workspaceContext.originRisk.helper }}</div>
+            <div class="hstack gap-2 flex-wrap">
+              <Link :href="workspaceContext.originRisk.reviewRoute" class="btn btn-soft-primary btn-sm">
+                Torna alla review
+              </Link>
+              <Link :href="workspaceContext.originRisk.measuresRoute" class="btn btn-soft-info btn-sm">
+                Torna alle misure
+              </Link>
+              <Link :href="workspaceContext.originRisk.profileRoute" class="btn btn-soft-secondary btn-sm">
+                Apri profilo rischio
+              </Link>
+            </div>
+          </div>
+
           <div v-if="contextBadges.length > 0 || workspaceContext.backRoute" class="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-3">
             <div class="d-flex align-items-center gap-2 flex-wrap">
               <span v-for="badge in contextBadges" :key="badge" class="badge bg-soft-info text-info">
@@ -580,6 +605,9 @@ const laneBadgeClasses = {
                 <td>
                   <div>{{ measure.risk_name || "Rischio non disponibile" }}</div>
                   <div class="text-muted fs-13">{{ measure.risk_category || "Categoria non disponibile" }}</div>
+                  <div v-if="measure.is_origin_risk" class="mt-1">
+                    <span class="badge bg-soft-primary text-primary">Rischio origine</span>
+                  </div>
                 </td>
                 <td>
                   <span

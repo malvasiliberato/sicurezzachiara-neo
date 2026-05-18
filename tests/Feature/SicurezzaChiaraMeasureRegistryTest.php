@@ -192,6 +192,45 @@ test('measure registry exposes quick contextual shortcuts for the current worksp
         ->assertSee('profilo-rischio', false);
 });
 
+test('measure registry preserves the originating risk when opened from a single review', function () {
+    $this->seed(SicurezzaChiaraShowcaseSeeder::class);
+
+    $user = User::query()->where('email', 'owner.showcase@sicurezzachiara.test')->firstOrFail();
+    $company = Company::query()->where('name', 'Metalnova S.r.l.')->firstOrFail();
+    $measure = RiskMeasure::query()->where('title', 'Verifica schermature e protezioni linea di taglio')->firstOrFail();
+    $profileItem = RiskProfileItem::query()
+        ->where('profileable_type', $measure->profileable_type)
+        ->where('profileable_id', $measure->profileable_id)
+        ->where('risk_catalog_item_id', $measure->risk_catalog_item_id)
+        ->firstOrFail();
+
+    $this->actingAs($user)
+        ->get(route('measure-registries.index', [
+            'family' => 'follow_up',
+            'scope' => 'follow_up_open',
+            'company_id' => $company->id,
+            'risk_profile_item_id' => $profileItem->id,
+            'origin' => 'risk_review',
+            'focus' => 'follow_up',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('sicurezzachiara/measure-registries/Index')
+            ->where('workspaceContext.originRisk.id', $profileItem->id)
+            ->where('workspaceContext.originRisk.riskName', 'Schiacciamento e cesoiamento')
+            ->where('workspaceContext.originRisk.parentTypeLabel', 'Azienda')
+            ->where('workspaceContext.originRisk.parentLabel', 'Metalnova S.r.l.')
+            ->where('workspaceContext.originRisk.reviewRoute', route('companies.risk-profile.review.show', [$company, $profileItem]))
+            ->where('workspaceContext.originRisk.measuresRoute', route('companies.risk-profile.measures.show', [$company, $profileItem]))
+            ->where('workspaceContext.originRisk.profileRoute', route('companies.risk-profile.show', $company))
+            ->where('measures.0.is_origin_risk', true)
+            ->where('measures.0.risk_profile_item_id', $profileItem->id)
+        )
+        ->assertSee('workspaceContext', false)
+        ->assertSee('risk_profile_item_id', false)
+        ->assertSee('originRisk', false);
+});
+
 test('measure registry exposes expected coverage semantics for direct equivalent and free measures', function () {
     $this->seed(SicurezzaChiaraShowcaseSeeder::class);
 

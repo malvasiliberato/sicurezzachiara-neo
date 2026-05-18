@@ -189,6 +189,7 @@ test('review page exposes a light operational timeline for the risk', function (
             ->where('reviewBridge.actions.companyRoute', route('companies.show', $company))
             ->where('reviewBridge.actions.workspaceRoute', route('measure-registries.index', [
                 'company_id' => $company->id,
+                'risk_profile_item_id' => $profileItem->id,
                 'origin' => 'risk_review',
                 'focus' => 'follow_up',
                 'family' => 'follow_up',

@@ -155,6 +155,7 @@ test('users can attach implemented and pending measures to a risk profile item',
             ->where('measureBridge.actions.companyRoute', route('companies.show', $company))
             ->where('measureBridge.actions.workspaceRoute', route('measure-registries.index', [
                 'company_id' => $company->id,
+                'risk_profile_item_id' => $profileItem->id,
                 'origin' => 'risk_measures',
                 'focus' => 'reviews',
                 'scope' => 'attention',

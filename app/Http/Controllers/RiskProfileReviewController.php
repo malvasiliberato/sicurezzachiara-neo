@@ -294,6 +294,7 @@ class RiskProfileReviewController extends Controller
             workspaceRoute: route('measure-registries.index', array_filter([
                 'company_id' => $companyId,
                 'owner_user_id' => $riskProfileItem->operational_owner_user_id,
+                'risk_profile_item_id' => $riskProfileItem->id,
                 'origin' => 'risk_review',
                 'focus' => $focus,
                 'family' => $riskProfileItem->follow_up_status ? 'follow_up' : null,

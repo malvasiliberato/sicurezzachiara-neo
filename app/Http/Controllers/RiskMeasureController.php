@@ -381,6 +381,7 @@ class RiskMeasureController extends Controller
                 : route('workers.risk-profile.review.show', [$parent, $riskProfileItem]),
             workspaceRoute: route('measure-registries.index', array_filter([
                 'company_id' => $companyId,
+                'risk_profile_item_id' => $riskProfileItem->id,
                 'origin' => 'risk_measures',
                 'focus' => ($summary['toVerifyMeasures'] + $summary['notImplementedMeasures']) > 0 ? 'follow_up' : 'reviews',
                 'scope' => 'attention',
