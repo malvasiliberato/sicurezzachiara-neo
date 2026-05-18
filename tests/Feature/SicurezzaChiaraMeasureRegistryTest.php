@@ -222,7 +222,18 @@ test('measure registry preserves the originating risk when opened from a single 
             ->where('workspaceContext.originRisk.parentLabel', 'Metalnova S.r.l.')
             ->where('workspaceContext.originRisk.reviewRoute', route('companies.risk-profile.review.show', [$company, $profileItem]))
             ->where('workspaceContext.originRisk.measuresRoute', route('companies.risk-profile.measures.show', [$company, $profileItem]))
-            ->where('workspaceContext.originRisk.profileRoute', route('companies.risk-profile.show', $company))
+            ->where('workspaceContext.originRisk.profileRoute', route('companies.risk-profile.show', [
+                'company' => $company,
+                'origin' => 'measure_registry',
+                'focus' => 'follow_up',
+                'risk_profile_item_id' => $profileItem->id,
+            ]))
+            ->where('contextBridge.actions.riskProfileRoute', route('companies.risk-profile.show', [
+                'company' => $company,
+                'origin' => 'measure_registry',
+                'focus' => 'follow_up',
+                'risk_profile_item_id' => $profileItem->id,
+            ]))
             ->where('measures.0.is_origin_risk', true)
             ->where('measures.0.risk_profile_item_id', $profileItem->id)
         )

@@ -32,6 +32,7 @@ class RiskProfileController extends Controller
         $company = $this->companyForTenant($tenant, $company);
         $origin = $request->string('origin')->toString() ?: null;
         $focus = $request->string('focus')->toString() ?: null;
+        $originRiskProfileItemId = $request->integer('risk_profile_item_id') ?: null;
 
         $riskProfileBuilder->rebuildCompany($company);
 
@@ -72,6 +73,10 @@ class RiskProfileController extends Controller
 
         $engine = $riskEngineSnapshotBuilder->buildForProfileable($company);
         $engineRiskMap = collect($engine['risks'])->keyBy('id');
+        $originRiskProfileItem = $originRiskProfileItemId !== null
+            ? $company->riskProfileItems->firstWhere('id', $originRiskProfileItemId)
+            : null;
+        abort_if($originRiskProfileItemId !== null && $originRiskProfileItem === null, 404);
         $overdueMeasures = $company->riskMeasures
             ->filter(fn (RiskMeasure $measure) => $measure->due_date !== null
                 && $measure->status !== RiskMeasure::STATUS_IMPLEMENTED
@@ -102,7 +107,7 @@ class RiskProfileController extends Controller
             'summary' => $engine['summary'],
             'engine' => collect($engine)->except('risks')->all(),
             'coreStarterPack' => $coreStarterPack,
-            'workspaceBridge' => $this->buildCompanyWorkspaceBridge($company, $engine['summary'], $overdueMeasures, $origin, $focus),
+            'workspaceBridge' => $this->buildCompanyWorkspaceBridge($company, $engine['summary'], $overdueMeasures, $origin, $focus, $originRiskProfileItem),
             'manualRiskOptions' => $overrideManager->availableManualRiskOptions($tenant, $company),
             'formOptions' => $this->formOptions(),
         ]);
@@ -253,6 +258,7 @@ class RiskProfileController extends Controller
         int $overdueMeasures,
         ?string $origin,
         ?string $focus,
+        ?RiskProfileItem $originRiskProfileItem,
     ): array {
         $focusLabels = [
             'all' => 'Vista completa',
@@ -275,6 +281,12 @@ class RiskProfileController extends Controller
         };
 
         $suggestedScope = match ($suggestedFocus) {
+            'deadlines' => 'overdue',
+            'follow_up' => 'follow_up_open',
+            default => 'attention',
+        };
+        $returnFocus = $originRiskProfileItem !== null && $focus !== null ? $focus : $suggestedFocus;
+        $returnScope = match ($returnFocus) {
             'deadlines' => 'overdue',
             'follow_up' => 'follow_up_open',
             default => 'attention',
@@ -303,6 +315,23 @@ class RiskProfileController extends Controller
         $followUpsOpen = (int) ($summary['followUpsOpen'] ?? 0);
         $missingExpectedMeasures = (int) ($summary['missingExpectedMeasures'] ?? 0);
         $uncoveredRisks = (int) ($summary['uncoveredRisks'] ?? 0);
+        $originRiskContext = $originRiskProfileItem
+            ? [
+                'id' => $originRiskProfileItem->id,
+                'riskName' => $originRiskProfileItem->riskCatalogItem?->name,
+                'reviewRoute' => route('companies.risk-profile.review.show', [$company, $originRiskProfileItem]),
+                'measuresRoute' => route('companies.risk-profile.measures.show', [$company, $originRiskProfileItem]),
+                'registryRoute' => route('measure-registries.index', array_filter([
+                    'company_id' => $company->id,
+                    'origin' => 'company_risk_profile',
+                    'focus' => $returnFocus,
+                    'scope' => $returnScope,
+                    'family' => $returnFocus === 'follow_up' ? 'follow_up' : null,
+                    'risk_profile_item_id' => $originRiskProfileItem->id,
+                ], fn ($value) => $value !== null && $value !== '')),
+                'helper' => 'Stai rientrando nel profilo azienda dopo il lavoro nel registro contestuale di questo rischio. Chiudi qui il giudizio e poi riapri il presidio solo se serve.',
+            ]
+            : null;
 
         $workQueue = collect([
             $overdueMeasures > 0 ? [
@@ -316,6 +345,7 @@ class RiskProfileController extends Controller
                     'origin' => 'company_risk_profile',
                     'focus' => 'deadlines',
                     'scope' => 'overdue',
+                    'risk_profile_item_id' => $originRiskProfileItem?->id,
                 ]),
                 'tone' => 'danger',
                 'laneLabel' => 'Corsia scaduti',
@@ -330,6 +360,7 @@ class RiskProfileController extends Controller
                     'company' => $company,
                     'origin' => 'company_risk_profile',
                     'focus' => 'reviews',
+                    'risk_profile_item_id' => $originRiskProfileItem?->id,
                 ]),
                 'tone' => 'primary',
                 'laneLabel' => 'Corsia review',
@@ -346,6 +377,7 @@ class RiskProfileController extends Controller
                     'focus' => 'follow_up',
                     'scope' => 'follow_up_open',
                     'family' => 'follow_up',
+                    'risk_profile_item_id' => $originRiskProfileItem?->id,
                 ]),
                 'tone' => 'warning',
                 'laneLabel' => 'Corsia follow-up',
@@ -360,6 +392,7 @@ class RiskProfileController extends Controller
                     'company' => $company,
                     'origin' => 'company_risk_profile',
                     'focus' => 'all',
+                    'risk_profile_item_id' => $originRiskProfileItem?->id,
                 ]),
                 'tone' => 'info',
                 'laneLabel' => 'Corsia copertura',
@@ -382,6 +415,7 @@ class RiskProfileController extends Controller
                     'company' => $company,
                     'origin' => 'company_risk_profile',
                     'focus' => 'reviews',
+                    'risk_profile_item_id' => $originRiskProfileItem?->id,
                 ]),
             ],
             [
@@ -401,6 +435,7 @@ class RiskProfileController extends Controller
                     'focus' => 'follow_up',
                     'scope' => 'follow_up_open',
                     'family' => 'follow_up',
+                    'risk_profile_item_id' => $originRiskProfileItem?->id,
                 ]),
             ],
             [
@@ -419,6 +454,7 @@ class RiskProfileController extends Controller
                     'origin' => 'company_risk_profile',
                     'focus' => 'deadlines',
                     'scope' => 'overdue',
+                    'risk_profile_item_id' => $originRiskProfileItem?->id,
                 ]),
             ],
             [
@@ -436,6 +472,7 @@ class RiskProfileController extends Controller
                     'company' => $company,
                     'origin' => 'company_risk_profile',
                     'focus' => 'all',
+                    'risk_profile_item_id' => $originRiskProfileItem?->id,
                 ]),
             ],
         ])->all();
@@ -443,6 +480,7 @@ class RiskProfileController extends Controller
         return [
             'origin' => $origin,
             'originLabel' => $origin ? ($originLabels[$origin] ?? $origin) : null,
+            'originRisk' => $originRiskContext,
             'focus' => $focus,
             'focusLabel' => $focus ? ($focusLabels[$focus] ?? $focus) : null,
             'suggestedFocus' => $suggestedFocus,
@@ -461,15 +499,17 @@ class RiskProfileController extends Controller
             'actions' => [
                 'registryRoute' => route('measure-registries.index', [
                     'company_id' => $company->id,
-                    'scope' => $suggestedScope,
+                    'scope' => $returnScope,
                     'origin' => 'company_risk_profile',
-                    'focus' => $suggestedFocus,
+                    'focus' => $returnFocus,
+                    'risk_profile_item_id' => $originRiskProfileItem?->id,
                 ]),
                 'allMeasuresRoute' => route('measure-registries.index', [
                     'company_id' => $company->id,
                     'scope' => 'attention',
                     'origin' => 'company_risk_profile',
-                    'focus' => $suggestedFocus,
+                    'focus' => $returnFocus,
+                    'risk_profile_item_id' => $originRiskProfileItem?->id,
                 ]),
                 'companyRoute' => route('companies.show', $company),
                 'dashboardRoute' => $origin === 'dashboard'

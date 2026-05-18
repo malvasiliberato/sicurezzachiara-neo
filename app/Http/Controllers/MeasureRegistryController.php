@@ -373,7 +373,12 @@ class MeasureRegistryController extends Controller
                 'measuresRoute' => $this->measureManageRoute($originRiskProfileItem),
                 'profileRoute' => $originRiskProfileItem->profileable_type === Worker::class
                     ? route('workers.risk-profile.show', $originRiskProfileItem->profileable_id)
-                    : route('companies.risk-profile.show', $originRiskProfileItem->profileable_id),
+                    : route('companies.risk-profile.show', [
+                        'company' => $originRiskProfileItem->profileable_id,
+                        'origin' => 'measure_registry',
+                        'focus' => $focus ?: 'all',
+                        'risk_profile_item_id' => $originRiskProfileItem->id,
+                    ]),
                 'helper' => match ($origin) {
                     'risk_review' => 'Stai lavorando sulle misure aperte di questa review: chiudi il tratto operativo e poi rientra nel giudizio consulenziale.',
                     'risk_measures' => 'Questo registro estende la stessa gestione misure del rischio da cui sei partito, mantenendo lo stesso perimetro aziendale.',
@@ -496,6 +501,7 @@ class MeasureRegistryController extends Controller
                 $focus === 'reviews' || $reviewsDue > 0 => 'reviews',
                 default => 'all',
             };
+            $returnFocus = $originRiskProfileItem !== null && $focus !== null ? $focus : $suggestedFocus;
 
             $contextBridge = [
                 'companyName' => $companyLabels->get($companyId),
@@ -529,7 +535,8 @@ class MeasureRegistryController extends Controller
                     'riskProfileRoute' => route('companies.risk-profile.show', [
                         'company' => $companyId,
                         'origin' => 'measure_registry',
-                        'focus' => $suggestedFocus,
+                        'focus' => $returnFocus,
+                        'risk_profile_item_id' => $originRiskProfileItem?->id,
                     ]),
                     'dashboardRoute' => $workspaceContext['backRoute'],
                 ],
@@ -570,6 +577,7 @@ class MeasureRegistryController extends Controller
                             'company' => $companyId,
                             'origin' => 'measure_registry',
                             'focus' => 'reviews',
+                            'risk_profile_item_id' => $originRiskProfileItem?->id,
                         ]),
                         'tone' => 'primary',
                     ] : null,
@@ -582,6 +590,7 @@ class MeasureRegistryController extends Controller
                             'company' => $companyId,
                             'origin' => 'measure_registry',
                             'focus' => 'all',
+                            'risk_profile_item_id' => $originRiskProfileItem?->id,
                         ]),
                         'tone' => 'info',
                     ] : null,

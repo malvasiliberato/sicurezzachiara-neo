@@ -237,6 +237,26 @@ const queueToneButtonClasses = {
           <div class="fw-semibold mb-1">{{ workspaceBridge.suggestedAction.label }}</div>
           <div class="text-muted fs-13">{{ workspaceBridge.suggestedAction.helper }}</div>
         </div>
+        <div v-if="workspaceBridge.originRisk" class="border rounded p-3 mb-3">
+          <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+            <div>
+              <div class="text-uppercase text-muted fs-12 fw-semibold mb-2">Rischio di rientro</div>
+              <div class="fw-semibold mb-1">{{ workspaceBridge.originRisk.riskName }}</div>
+              <div class="text-muted fs-13">{{ workspaceBridge.originRisk.helper }}</div>
+            </div>
+            <div class="hstack gap-2 flex-wrap">
+              <Link :href="workspaceBridge.originRisk.reviewRoute" class="btn btn-soft-primary btn-sm">
+                Torna alla review
+              </Link>
+              <Link :href="workspaceBridge.originRisk.measuresRoute" class="btn btn-soft-danger btn-sm">
+                Torna alle misure
+              </Link>
+              <Link :href="workspaceBridge.originRisk.registryRoute" class="btn btn-soft-info btn-sm">
+                Riapri registro rischio
+              </Link>
+            </div>
+          </div>
+        </div>
         <div v-if="focusWorkQueue.length" class="rounded-3 bg-light-subtle border mb-3 overflow-hidden">
           <div class="px-3 py-2 border-bottom text-uppercase text-muted fw-semibold fs-12">
             Coda di lavoro minima

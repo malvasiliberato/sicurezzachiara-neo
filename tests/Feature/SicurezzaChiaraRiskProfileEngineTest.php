@@ -24,6 +24,7 @@ use Database\Seeders\SicurezzaChiaraCoreJobRolesSeeder;
 use Database\Seeders\SicurezzaChiaraCoreRiskCategoriesSeeder;
 use Database\Seeders\SicurezzaChiaraCoreRisksSeeder;
 use Database\Seeders\SicurezzaChiaraCoreWorkplaceTypesSeeder;
+use Database\Seeders\SicurezzaChiaraShowcaseSeeder;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('company and worker risk profiles are deduced from mapped domain sources', function () {
@@ -331,6 +332,62 @@ test('engine snapshots keep company and worker measure coverage isolated even wh
     expect($snapshot['summary']['coveredExpectedMeasures'])->toBe(1)
         ->and($snapshot['summary']['missingExpectedMeasures'])->toBe(1)
         ->and(collect($snapshot['risks'])->pluck('coverage.label')->all())->toContain('Coperto', 'Da presidiare');
+});
+
+test('company risk profile preserves the originating risk when reopened from the registry', function () {
+    $this->seed(SicurezzaChiaraShowcaseSeeder::class);
+
+    $user = User::query()->where('email', 'owner.showcase@sicurezzachiara.test')->firstOrFail();
+    $company = Company::query()->where('name', 'Metalnova S.r.l.')->firstOrFail();
+    $profileItem = RiskProfileItem::query()
+        ->where('profileable_type', Company::class)
+        ->where('profileable_id', $company->id)
+        ->whereHas('riskCatalogItem', fn ($query) => $query->where('name', 'Schiacciamento e cesoiamento'))
+        ->firstOrFail();
+
+    $this->actingAs($user)
+        ->get(route('companies.risk-profile.show', [
+            'company' => $company,
+            'origin' => 'measure_registry',
+            'focus' => 'follow_up',
+            'risk_profile_item_id' => $profileItem->id,
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('sicurezzachiara/risk-profiles/CompanyShow')
+            ->where('workspaceBridge.origin', 'measure_registry')
+            ->where('workspaceBridge.focus', 'follow_up')
+            ->where('workspaceBridge.originRisk.id', $profileItem->id)
+            ->where('workspaceBridge.originRisk.riskName', 'Schiacciamento e cesoiamento')
+            ->where('workspaceBridge.originRisk.reviewRoute', route('companies.risk-profile.review.show', [$company, $profileItem]))
+            ->where('workspaceBridge.originRisk.measuresRoute', route('companies.risk-profile.measures.show', [$company, $profileItem]))
+            ->where('workspaceBridge.originRisk.registryRoute', route('measure-registries.index', [
+                'company_id' => $company->id,
+                'origin' => 'company_risk_profile',
+                'focus' => 'follow_up',
+                'scope' => 'follow_up_open',
+                'family' => 'follow_up',
+                'risk_profile_item_id' => $profileItem->id,
+            ]))
+            ->where('workspaceBridge.actions.registryRoute', route('measure-registries.index', [
+                'company_id' => $company->id,
+                'scope' => 'follow_up_open',
+                'origin' => 'company_risk_profile',
+                'focus' => 'follow_up',
+                'risk_profile_item_id' => $profileItem->id,
+            ]))
+            ->where('workspaceBridge.operationalQueue.1.actionRoute', route('measure-registries.index', [
+                'company_id' => $company->id,
+                'origin' => 'company_risk_profile',
+                'focus' => 'follow_up',
+                'scope' => 'follow_up_open',
+                'family' => 'follow_up',
+                'risk_profile_item_id' => $profileItem->id,
+            ]))
+        )
+        ->assertSee('workspaceBridge', false)
+        ->assertSee('originRisk', false)
+        ->assertSee('risk_profile_item_id', false);
 });
 
 test('users cannot open company or worker risk profiles belonging to another tenant', function () {
