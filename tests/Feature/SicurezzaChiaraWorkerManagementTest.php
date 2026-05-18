@@ -3,6 +3,7 @@
 use App\Actions\Tenant\CreateTenantWorkspace;
 use App\Models\Company;
 use App\Models\CompanySite;
+use App\Models\JobRole;
 use App\Models\User;
 use App\Models\Worker;
 use Database\Seeders\SicurezzaChiaraShowcaseSeeder;
@@ -209,4 +210,65 @@ test('worker create and edit preserve company workflow context when opened from 
             ->component('sicurezzachiara/workers/Show')
             ->where('contextBridge.actions.workersRoute', route('workers.index', ['company_id' => $company->id]))
         );
+});
+
+test('workers index keeps company context and enriched row routes when filtered by azienda', function () {
+    $user = User::factory()->create();
+
+    app(CreateTenantWorkspace::class)->handle($user, 'Studio Test');
+
+    $this->actingAs($user);
+
+    $company = Company::query()->create([
+        'tenant_id' => $user->fresh()->current_tenant_id,
+        'name' => 'Metalnova S.r.l.',
+    ]);
+
+    $site = CompanySite::query()->create([
+        'company_id' => $company->id,
+        'name' => 'Stabilimento principale',
+        'is_headquarters' => true,
+    ]);
+
+    $jobRole = JobRole::query()->create([
+        'source' => JobRole::SOURCE_CORE,
+        'code' => 'OPERATORE',
+        'name' => 'Operatore produzione',
+        'is_active' => true,
+    ]);
+
+    $worker = Worker::query()->create([
+        'company_id' => $company->id,
+        'primary_site_id' => $site->id,
+        'first_name' => 'Mario',
+        'last_name' => 'Rossi',
+        'status' => 'active',
+    ]);
+
+    \App\Models\WorkerJobRoleAssignment::query()->create([
+        'worker_id' => $worker->id,
+        'job_role_id' => $jobRole->id,
+        'is_primary' => true,
+    ]);
+
+    $expectedContext = fn (Assert $page) => $page
+        ->component('sicurezzachiara/workers/Index')
+        ->where('companyContext.name', 'Metalnova S.r.l.')
+        ->where('companyContext.showRoute', route('companies.show', $company))
+        ->where('companyContext.workersRoute', route('workers.index', ['company_id' => $company->id]))
+        ->where('companyContext.createRoute', route('workers.create', ['company' => $company->id]))
+        ->where('workers.0.full_name', 'Mario Rossi')
+        ->where('workers.0.company.name', 'Metalnova S.r.l.')
+        ->where('workers.0.primary_site.name', 'Stabilimento principale')
+        ->where('workers.0.primary_job_role.name', 'Operatore produzione')
+        ->where('workers.0.show_route', route('workers.show', $worker))
+        ->where('workers.0.edit_route', route('workers.edit', $worker));
+
+    $this->get(route('workers.index', ['company_id' => $company->id]))
+        ->assertOk()
+        ->assertInertia($expectedContext);
+
+    $this->get(route('workers.index', ['company' => $company->id]))
+        ->assertOk()
+        ->assertInertia($expectedContext);
 });

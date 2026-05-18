@@ -48,7 +48,7 @@ const columns = [
   },
   {
     id: "context",
-    accessorFn: (row) => row.primary_site?.name || row.job_role_assignments?.[0]?.job_role?.name || "",
+    accessorFn: (row) => row.primary_site?.name || row.primary_job_role?.name || "",
     header: "Contesto",
     enableSorting: true,
     meta: {
@@ -206,7 +206,7 @@ const columns = [
           <template #cell-context="{ row }">
             <div class="text-break">{{ row.primary_site?.name || "Sede non assegnata" }}</div>
             <div class="text-muted fs-13 text-break">
-              {{ row.job_role_assignments?.[0]?.job_role?.name || "Mansione prevalente non assegnata" }}
+              {{ row.primary_job_role?.name || "Mansione prevalente non assegnata" }}
             </div>
           </template>
 
@@ -224,7 +224,7 @@ const columns = [
             <div class="d-inline-flex align-items-center gap-1 justify-content-end">
               <Link
                 :id="actionTooltipId(row.id, 'show')"
-                :href="route('workers.show', row.id)"
+                :href="row.show_route || route('workers.show', row.id)"
                 class="btn btn-soft-primary btn-icon"
                 style="width: 2.25rem; height: 2.25rem;"
                 aria-label="Apri lavoratore"
@@ -236,7 +236,7 @@ const columns = [
               <Link
                 v-if="$page.props.tenantContext?.permissions?.can_manage_data"
                 :id="actionTooltipId(row.id, 'edit')"
-                :href="route('workers.edit', row.id)"
+                :href="row.edit_route || route('workers.edit', row.id)"
                 class="btn btn-soft-secondary btn-icon"
                 style="width: 2.25rem; height: 2.25rem;"
                 aria-label="Modifica lavoratore"

@@ -34,6 +34,7 @@ class WorkerController extends Controller
     {
         $tenant = $tenantResolver->resolve($request->user());
         $selectedCompany = null;
+        $selectedCompanyId = $request->integer('company_id') ?: $request->integer('company');
 
         $workersQuery = $tenant->workers()
             ->with([
@@ -46,20 +47,47 @@ class WorkerController extends Controller
             ->orderBy('last_name')
             ->orderBy('first_name');
 
-        if ($request->filled('company_id')) {
+        if ($selectedCompanyId !== 0 && $selectedCompanyId !== null) {
             $selectedCompany = $this->companyForTenant(
                 $tenant,
-                Company::query()->findOrFail($request->integer('company_id')),
+                Company::query()->findOrFail($selectedCompanyId),
             );
 
             $workersQuery->where('company_id', $selectedCompany->id);
         }
 
         $workers = $workersQuery->get();
+        $workersPayload = $workers->map(fn (Worker $worker) => [
+            'id' => $worker->id,
+            'full_name' => $worker->full_name,
+            'first_name' => $worker->first_name,
+            'last_name' => $worker->last_name,
+            'tax_code' => $worker->tax_code,
+            'email' => $worker->email,
+            'phone' => $worker->phone,
+            'status' => $worker->status,
+            'company' => $worker->company ? [
+                'id' => $worker->company->id,
+                'name' => $worker->company->name,
+            ] : null,
+            'primary_site' => $worker->primarySite ? [
+                'id' => $worker->primarySite->id,
+                'name' => $worker->primarySite->name,
+            ] : null,
+            'primary_job_role' => $worker->jobRoleAssignments->first()?->jobRole ? [
+                'id' => $worker->jobRoleAssignments->first()->jobRole->id,
+                'name' => $worker->jobRoleAssignments->first()->jobRole->name,
+                'source' => $worker->jobRoleAssignments->first()->jobRole->source,
+            ] : null,
+            'sites_summary' => $worker->primarySite?->name,
+            'job_roles_summary' => $worker->jobRoleAssignments->first()?->jobRole?->name,
+            'show_route' => route('workers.show', $worker),
+            'edit_route' => route('workers.edit', $worker),
+        ])->values();
 
         return Inertia::render('sicurezzachiara/workers/Index', [
             'tenant' => $tenant->only(['id', 'name', 'slug']),
-            'workers' => $workers,
+            'workers' => $workersPayload,
             'summary' => [
                 'workersCount' => $workers->count(),
                 'activeCount' => $workers->where('status', 'active')->count(),
@@ -70,6 +98,7 @@ class WorkerController extends Controller
                 'name' => $selectedCompany->name,
                 'showRoute' => route('companies.show', $selectedCompany),
                 'configureRoute' => route('companies.edit', $selectedCompany),
+                'workersRoute' => route('workers.index', ['company_id' => $selectedCompany->id]),
                 'createRoute' => route('workers.create', ['company' => $selectedCompany->id]),
                 'riskProfileRoute' => route('companies.risk-profile.show', [
                     'company' => $selectedCompany,
