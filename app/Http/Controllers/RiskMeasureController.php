@@ -44,6 +44,8 @@ class RiskMeasureController extends Controller
     ): Response {
         $tenant = $tenantResolver->resolve($request->user());
         $company = $this->companyForTenant($tenant, $company);
+        $origin = $request->string('origin')->toString() ?: null;
+        $focus = $request->string('focus')->toString() ?: null;
         $riskProfileBuilder->rebuildCompany($company);
         $riskProfileItem = $this->profileItemForCompany($company, $riskProfileItem);
 
@@ -52,6 +54,8 @@ class RiskMeasureController extends Controller
             parent: $company,
             parentType: 'company',
             riskProfileItem: $riskProfileItem,
+            origin: $origin,
+            focus: $focus,
         );
     }
 
@@ -95,7 +99,12 @@ class RiskMeasureController extends Controller
         $riskCoverageResolver->syncForProfileableRisk($company, $riskProfileItem->risk_catalog_item_id);
 
         return redirect()
-            ->route('companies.risk-profile.measures.show', [$company, $riskProfileItem])
+            ->route('companies.risk-profile.measures.show', array_filter([
+                $company,
+                $riskProfileItem,
+                'origin' => $request->query('origin'),
+                'focus' => $request->query('focus'),
+            ], fn ($value) => $value !== null && $value !== ''))
             ->with('success', 'Misura collegata al rischio aziendale.');
     }
 
@@ -137,7 +146,12 @@ class RiskMeasureController extends Controller
         $riskCoverageResolver->syncForProfileableRisk($company, $riskProfileItem->risk_catalog_item_id);
 
         return redirect()
-            ->route('companies.risk-profile.measures.show', [$company, $riskProfileItem])
+            ->route('companies.risk-profile.measures.show', array_filter([
+                $company,
+                $riskProfileItem,
+                'origin' => $request->query('origin'),
+                'focus' => $request->query('focus'),
+            ], fn ($value) => $value !== null && $value !== ''))
             ->with('success', 'Misura aggiornata correttamente.');
     }
 
@@ -179,7 +193,12 @@ class RiskMeasureController extends Controller
         $riskCoverageResolver->syncForProfileableRisk($company, $riskProfileItem->risk_catalog_item_id);
 
         return redirect()
-            ->route('companies.risk-profile.measures.show', [$company, $riskProfileItem])
+            ->route('companies.risk-profile.measures.show', array_filter([
+                $company,
+                $riskProfileItem,
+                'origin' => $request->query('origin'),
+                'focus' => $request->query('focus'),
+            ], fn ($value) => $value !== null && $value !== ''))
             ->with('success', 'Misura rimossa correttamente.');
     }
 
@@ -192,6 +211,8 @@ class RiskMeasureController extends Controller
     ): Response {
         $tenant = $tenantResolver->resolve($request->user());
         $worker = $this->workerForTenant($tenant, $worker);
+        $origin = $request->string('origin')->toString() ?: null;
+        $focus = $request->string('focus')->toString() ?: null;
         $riskProfileBuilder->rebuildWorker($worker);
         $riskProfileItem = $this->profileItemForWorker($worker, $riskProfileItem);
 
@@ -200,6 +221,8 @@ class RiskMeasureController extends Controller
             parent: $worker,
             parentType: 'worker',
             riskProfileItem: $riskProfileItem,
+            origin: $origin,
+            focus: $focus,
         );
     }
 
@@ -243,7 +266,12 @@ class RiskMeasureController extends Controller
         $riskCoverageResolver->syncForProfileableRisk($worker, $riskProfileItem->risk_catalog_item_id);
 
         return redirect()
-            ->route('workers.risk-profile.measures.show', [$worker, $riskProfileItem])
+            ->route('workers.risk-profile.measures.show', array_filter([
+                $worker,
+                $riskProfileItem,
+                'origin' => $request->query('origin'),
+                'focus' => $request->query('focus'),
+            ], fn ($value) => $value !== null && $value !== ''))
             ->with('success', 'Misura collegata al rischio del lavoratore.');
     }
 
@@ -285,7 +313,12 @@ class RiskMeasureController extends Controller
         $riskCoverageResolver->syncForProfileableRisk($worker, $riskProfileItem->risk_catalog_item_id);
 
         return redirect()
-            ->route('workers.risk-profile.measures.show', [$worker, $riskProfileItem])
+            ->route('workers.risk-profile.measures.show', array_filter([
+                $worker,
+                $riskProfileItem,
+                'origin' => $request->query('origin'),
+                'focus' => $request->query('focus'),
+            ], fn ($value) => $value !== null && $value !== ''))
             ->with('success', 'Misura aggiornata correttamente.');
     }
 
@@ -326,7 +359,12 @@ class RiskMeasureController extends Controller
         $riskCoverageResolver->syncForProfileableRisk($worker, $riskProfileItem->risk_catalog_item_id);
 
         return redirect()
-            ->route('workers.risk-profile.measures.show', [$worker, $riskProfileItem])
+            ->route('workers.risk-profile.measures.show', array_filter([
+                $worker,
+                $riskProfileItem,
+                'origin' => $request->query('origin'),
+                'focus' => $request->query('focus'),
+            ], fn ($value) => $value !== null && $value !== ''))
             ->with('success', 'Misura rimossa correttamente.');
     }
 
@@ -335,6 +373,8 @@ class RiskMeasureController extends Controller
         Company|Worker $parent,
         string $parentType,
         RiskProfileItem $riskProfileItem,
+        ?string $origin,
+        ?string $focus,
     ): Response {
         $riskProfileItem->loadMissing('riskCatalogItem.category');
 
@@ -367,32 +407,74 @@ class RiskMeasureController extends Controller
             ],
         ];
         $companyId = $parentType === 'company' ? $parent->id : $parent->company?->id;
+        $contextOrigin = $origin === 'measure_registry'
+            ? 'measure_registry'
+            : ($parentType === 'company' ? 'company_risk_profile' : 'worker_risk_profile');
+        $contextFocus = $focus ?: (($summary['toVerifyMeasures'] + $summary['notImplementedMeasures']) > 0 ? 'follow_up' : 'reviews');
+        $profileRoute = $parentType === 'company'
+            ? route('companies.risk-profile.show', [
+                'company' => $parent,
+                'origin' => $contextOrigin,
+                'focus' => $contextFocus,
+                'risk_profile_item_id' => $riskProfileItem->id,
+            ])
+            : route('workers.risk-profile.show', [
+                'worker' => $parent,
+                'origin' => $contextOrigin,
+                'focus' => $contextFocus,
+            ]);
+        $reviewRoute = $parentType === 'company'
+            ? route('companies.risk-profile.review.show', [
+                $parent,
+                $riskProfileItem,
+                'origin' => $contextOrigin,
+                'focus' => $contextFocus,
+            ])
+            : route('workers.risk-profile.review.show', [
+                $parent,
+                $riskProfileItem,
+                'origin' => $contextOrigin,
+                'focus' => $contextFocus,
+            ]);
+        $workspaceRoute = route('measure-registries.index', array_filter([
+            'company_id' => $companyId,
+            'risk_profile_item_id' => $riskProfileItem->id,
+            'origin' => 'risk_measures',
+            'focus' => $contextFocus,
+            'scope' => 'attention',
+        ], fn ($value) => $value !== null && $value !== ''));
+        $currentRoute = $parentType === 'company'
+            ? route('companies.risk-profile.measures.show', [
+                $parent,
+                $riskProfileItem,
+                'origin' => $contextOrigin,
+                'focus' => $contextFocus,
+            ])
+            : route('workers.risk-profile.measures.show', [
+                $parent,
+                $riskProfileItem,
+                'origin' => $contextOrigin,
+                'focus' => $contextFocus,
+            ]);
         $measureBridge = $this->buildMeasureBridge(
             parent: $parent,
             parentType: $parentType,
             riskProfileItem: $riskProfileItem,
             summary: $summary,
             expectedMeasures: $expectedMeasures,
-            profileRoute: $parentType === 'company'
-                ? route('companies.risk-profile.show', $parent)
-                : route('workers.risk-profile.show', $parent),
-            reviewRoute: $parentType === 'company'
-                ? route('companies.risk-profile.review.show', [$parent, $riskProfileItem])
-                : route('workers.risk-profile.review.show', [$parent, $riskProfileItem]),
-            workspaceRoute: route('measure-registries.index', array_filter([
-                'company_id' => $companyId,
-                'risk_profile_item_id' => $riskProfileItem->id,
-                'origin' => 'risk_measures',
-                'focus' => ($summary['toVerifyMeasures'] + $summary['notImplementedMeasures']) > 0 ? 'follow_up' : 'reviews',
-                'scope' => 'attention',
-            ], fn ($value) => $value !== null && $value !== '')),
+            profileRoute: $profileRoute,
+            reviewRoute: $reviewRoute,
+            workspaceRoute: $workspaceRoute,
             dashboardRoute: route('dashboard', [
-                'focus' => ($summary['toVerifyMeasures'] + $summary['notImplementedMeasures']) > 0 ? 'follow_up' : 'reviews',
+                'focus' => $contextFocus,
             ]),
             workerRoute: $parentType === 'worker' ? route('workers.show', $parent) : null,
             companyRoute: $parentType === 'company'
                 ? route('companies.show', $parent)
                 : ($parent->company ? route('companies.show', $parent->company) : null),
+            currentRoute: $currentRoute,
+            origin: $contextOrigin,
+            focus: $contextFocus,
         );
 
         return Inertia::render('sicurezzachiara/risk-measures/Manage', [
@@ -462,10 +544,28 @@ class RiskMeasureController extends Controller
         string $dashboardRoute,
         ?string $workerRoute,
         ?string $companyRoute,
+        string $currentRoute,
+        ?string $origin,
+        ?string $focus,
     ): array {
         $gapCount = (int) ($expectedMeasures['summary']['missing_count'] ?? 0)
             + (int) ($expectedMeasures['summary']['partial_count'] ?? 0);
         $pendingMeasures = (int) ($summary['toVerifyMeasures'] ?? 0) + (int) ($summary['notImplementedMeasures'] ?? 0);
+        $originLabel = match ($origin) {
+            'company_risk_profile' => 'Profilo rischio azienda',
+            'worker_risk_profile' => 'Profilo rischio lavoratore',
+            'measure_registry' => 'Registro contestuale',
+            'dashboard' => 'Dashboard operativa',
+            default => null,
+        };
+        $focusLabel = match ($focus) {
+            'follow_up' => 'Follow-up',
+            'reviews' => 'Review',
+            'deadlines' => 'Scadenze',
+            'urgent' => 'Urgenti',
+            'all' => 'Vista completa',
+            default => null,
+        };
 
         $decision = match (true) {
             $gapCount > 0 => [
@@ -546,6 +646,10 @@ class RiskMeasureController extends Controller
 
         return [
             'parentLabel' => $parentType === 'company' ? $parent->name : $parent->full_name,
+            'origin' => $origin,
+            'originLabel' => $originLabel,
+            'focus' => $focus,
+            'focusLabel' => $focusLabel,
             'decision' => $decision,
             'operationalQueue' => $operationalQueue,
             'stats' => [
@@ -555,12 +659,20 @@ class RiskMeasureController extends Controller
                 'expectedMeasures' => (int) ($expectedMeasures['summary']['expected_count'] ?? 0),
             ],
             'actions' => [
+                'currentRoute' => $currentRoute,
                 'profileRoute' => $profileRoute,
                 'reviewRoute' => $reviewRoute,
                 'workspaceRoute' => $workspaceRoute,
                 'dashboardRoute' => $dashboardRoute,
                 'workerRoute' => $workerRoute,
                 'companyRoute' => $companyRoute,
+            ],
+            'returnContext' => [
+                'label' => 'Rientro finale',
+                'helper' => 'Qui lavori i presidi del rischio senza perdere la provenienza: quando chiudi, rientra in review o nel profilo con lo stesso focus operativo.',
+                'profileRoute' => $profileRoute,
+                'reviewRoute' => $reviewRoute,
+                'workspaceRoute' => $workspaceRoute,
             ],
             'coverageLabel' => $gapCount > 0
                 ? 'Copertura attesa incompleta'

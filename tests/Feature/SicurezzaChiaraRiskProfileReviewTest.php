@@ -184,7 +184,12 @@ test('review page exposes a light operational timeline for the risk', function (
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('sicurezzachiara/risk-profiles/Review')
-            ->where('reviewBridge.actions.measuresRoute', route('workers.risk-profile.measures.show', [$worker, $profileItem]))
+            ->where('reviewBridge.actions.measuresRoute', route('workers.risk-profile.measures.show', [
+                'worker' => $worker,
+                'riskProfileItem' => $profileItem,
+                'origin' => 'worker_risk_profile',
+                'focus' => 'follow_up',
+            ]))
             ->where('reviewBridge.actions.workerRoute', route('workers.show', $worker))
             ->where('reviewBridge.actions.companyRoute', route('companies.show', $company))
             ->where('reviewBridge.actions.workspaceRoute', route('measure-registries.index', [
@@ -249,6 +254,12 @@ test('review page preserves profile origin and focus for the final return loop',
             ->where('reviewBridge.originLabel', 'Profilo rischio lavoratore')
             ->where('reviewBridge.focus', 'follow_up')
             ->where('reviewBridge.focusLabel', 'Follow-up')
+            ->where('reviewBridge.actions.measuresRoute', route('workers.risk-profile.measures.show', [
+                'worker' => $worker,
+                'riskProfileItem' => $profileItem,
+                'origin' => 'worker_risk_profile',
+                'focus' => 'follow_up',
+            ]))
             ->where('reviewBridge.returnContext.profileRoute', route('workers.risk-profile.show', [
                 'worker' => $worker,
                 'origin' => 'worker_risk_profile',

@@ -311,8 +311,18 @@ class RiskProfileReviewController extends Controller
             partialExpectedMeasures: $partialExpectedMeasures,
             profileRoute: $profileRoute,
             measuresRoute: $parentType === 'company'
-                ? route('companies.risk-profile.measures.show', [$profileable, $riskProfileItem])
-                : route('workers.risk-profile.measures.show', [$profileable, $riskProfileItem]),
+                ? route('companies.risk-profile.measures.show', [
+                    $profileable,
+                    $riskProfileItem,
+                    'origin' => $origin === 'measure_registry' ? 'measure_registry' : 'company_risk_profile',
+                    'focus' => $profileFocus,
+                ])
+                : route('workers.risk-profile.measures.show', [
+                    $profileable,
+                    $riskProfileItem,
+                    'origin' => $origin === 'measure_registry' ? 'measure_registry' : 'worker_risk_profile',
+                    'focus' => $profileFocus,
+                ]),
             workspaceRoute: route('measure-registries.index', array_filter([
                 'company_id' => $companyId,
                 'owner_user_id' => $riskProfileItem->operational_owner_user_id,

@@ -110,8 +110,19 @@ const measuresBaseRoute =
     ? route("companies.risk-profile.measures.show", [props.parent.id, props.profileItem.id])
     : route("workers.risk-profile.measures.show", [props.parent.id, props.profileItem.id]);
 
+const measuresQuerySuffix = (() => {
+  try {
+    const currentRoute = props.measureBridge?.actions?.currentRoute;
+    if (!currentRoute) return "";
+    const url = new URL(currentRoute);
+    return url.search || "";
+  } catch {
+    return "";
+  }
+})();
+
 const submit = () => {
-  form.post(measuresBaseRoute, {
+  form.post(`${measuresBaseRoute}${measuresQuerySuffix}`, {
     preserveScroll: true,
     onSuccess: () => {
       form.reset("title", "description", "due_date", "notes");
@@ -133,10 +144,7 @@ const submit = () => {
   });
 };
 
-const backRoute =
-  props.parentType === "company"
-    ? route("companies.risk-profile.show", props.parent.id)
-    : route("workers.risk-profile.show", props.parent.id);
+const backRoute = props.measureBridge.actions.profileRoute;
 
 const updateMeasureStatus = (measure, status) => {
   useForm({
@@ -148,13 +156,13 @@ const updateMeasureStatus = (measure, status) => {
     details: measure.details ?? {},
     due_date: measure.due_date ?? "",
     notes: measure.notes ?? "",
-  }).put(`${measuresBaseRoute}/${measure.id}`, {
+  }).put(`${measuresBaseRoute}/${measure.id}${measuresQuerySuffix}`, {
     preserveScroll: true,
   });
 };
 
 const removeMeasure = (measure) => {
-  useForm({}).delete(`${measuresBaseRoute}/${measure.id}`, {
+  useForm({}).delete(`${measuresBaseRoute}/${measure.id}${measuresQuerySuffix}`, {
     preserveScroll: true,
   });
 };
@@ -330,6 +338,30 @@ const applyExpectedMeasure = (expectedMeasure) => {
                   <span class="fw-semibold d-block">{{ item.label }} <span class="ms-1">({{ item.count }})</span></span>
                   <span class="d-block fs-12" v-if="item.laneLabel">{{ item.laneLabel }}</span>
                   <span class="fs-12">{{ item.helper }}</span>
+                </Link>
+              </div>
+            </div>
+            <div v-if="measureBridge.returnContext" class="border rounded p-3 mt-3">
+              <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+                <div>
+                  <div class="text-uppercase text-muted fs-12 fw-semibold mb-2">Rientro finale</div>
+                  <div class="fw-semibold mb-1">{{ measureBridge.returnContext.label }}</div>
+                  <div class="text-muted fs-13">{{ measureBridge.returnContext.helper }}</div>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <span v-if="measureBridge.originLabel" class="badge bg-soft-info text-info">{{ measureBridge.originLabel }}</span>
+                  <span v-if="measureBridge.focusLabel" class="badge bg-soft-warning text-warning">Focus: {{ measureBridge.focusLabel }}</span>
+                </div>
+              </div>
+              <div class="hstack gap-2 flex-wrap mt-3">
+                <Link :href="measureBridge.returnContext.profileRoute" class="btn btn-soft-secondary btn-sm">
+                  Torna al profilo
+                </Link>
+                <Link :href="measureBridge.returnContext.reviewRoute" class="btn btn-soft-primary btn-sm">
+                  Torna alla review
+                </Link>
+                <Link :href="measureBridge.returnContext.workspaceRoute" class="btn btn-soft-info btn-sm">
+                  Apri registro contestuale
                 </Link>
               </div>
             </div>

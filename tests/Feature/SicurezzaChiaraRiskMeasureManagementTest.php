@@ -150,7 +150,12 @@ test('users can attach implemented and pending measures to a risk profile item',
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('sicurezzachiara/risk-measures/Manage')
-            ->where('measureBridge.actions.reviewRoute', route('workers.risk-profile.review.show', [$worker, $profileItem]))
+            ->where('measureBridge.actions.reviewRoute', route('workers.risk-profile.review.show', [
+                'worker' => $worker,
+                'riskProfileItem' => $profileItem,
+                'origin' => 'worker_risk_profile',
+                'focus' => 'reviews',
+            ]))
             ->where('measureBridge.actions.workerRoute', route('workers.show', $worker))
             ->where('measureBridge.actions.companyRoute', route('companies.show', $company))
             ->where('measureBridge.actions.workspaceRoute', route('measure-registries.index', [
@@ -254,6 +259,95 @@ test('updating and removing company measures keeps risk coverage aligned', funct
         ->assertRedirect(route('companies.risk-profile.measures.show', [$company, $companyProfileItem]));
 
     expect(RiskMeasure::query()->whereKey($measure->id)->exists())->toBeFalse();
+});
+
+test('measure management preserves review origin and focus for the final return loop', function () {
+    ['user' => $user, 'company' => $company, 'worker' => $worker, 'risk' => $risk, 'profileItem' => $profileItem] = createWorkerRiskProfileFixture();
+
+    $risk->update([
+        'expected_measures' => [
+            [
+                'code' => 'protections',
+                'family' => RiskMeasure::FAMILY_TECHNICAL,
+                'title' => 'Protezioni macchina',
+                'description' => 'Presidio tecnico atteso.',
+                'is_required' => true,
+            ],
+        ],
+    ]);
+
+    RiskMeasure::query()->create([
+        'profileable_type' => Worker::class,
+        'profileable_id' => $worker->id,
+        'risk_catalog_item_id' => $profileItem->risk_catalog_item_id,
+        'family' => RiskMeasure::FAMILY_TECHNICAL,
+        'expected_measure_code' => 'protections',
+        'title' => 'Ripristino protezioni bordo pressa',
+        'status' => RiskMeasure::STATUS_TO_VERIFY,
+    ]);
+
+    $this->withoutVite();
+
+    $this->actingAs($user)
+        ->get(route('workers.risk-profile.measures.show', [
+            'worker' => $worker,
+            'riskProfileItem' => $profileItem,
+            'origin' => 'worker_risk_profile',
+            'focus' => 'follow_up',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('sicurezzachiara/risk-measures/Manage')
+            ->where('measureBridge.origin', 'worker_risk_profile')
+            ->where('measureBridge.originLabel', 'Profilo rischio lavoratore')
+            ->where('measureBridge.focus', 'follow_up')
+            ->where('measureBridge.focusLabel', 'Follow-up')
+            ->where('measureBridge.actions.currentRoute', route('workers.risk-profile.measures.show', [
+                'worker' => $worker,
+                'riskProfileItem' => $profileItem,
+                'origin' => 'worker_risk_profile',
+                'focus' => 'follow_up',
+            ]))
+            ->where('measureBridge.actions.profileRoute', route('workers.risk-profile.show', [
+                'worker' => $worker,
+                'origin' => 'worker_risk_profile',
+                'focus' => 'follow_up',
+            ]))
+            ->where('measureBridge.actions.reviewRoute', route('workers.risk-profile.review.show', [
+                'worker' => $worker,
+                'riskProfileItem' => $profileItem,
+                'origin' => 'worker_risk_profile',
+                'focus' => 'follow_up',
+            ]))
+            ->where('measureBridge.actions.workspaceRoute', route('measure-registries.index', [
+                'company_id' => $company->id,
+                'risk_profile_item_id' => $profileItem->id,
+                'origin' => 'risk_measures',
+                'focus' => 'follow_up',
+                'scope' => 'attention',
+            ]))
+            ->where('measureBridge.returnContext.profileRoute', route('workers.risk-profile.show', [
+                'worker' => $worker,
+                'origin' => 'worker_risk_profile',
+                'focus' => 'follow_up',
+            ]))
+            ->where('measureBridge.returnContext.reviewRoute', route('workers.risk-profile.review.show', [
+                'worker' => $worker,
+                'riskProfileItem' => $profileItem,
+                'origin' => 'worker_risk_profile',
+                'focus' => 'follow_up',
+            ]))
+            ->where('measureBridge.returnContext.workspaceRoute', route('measure-registries.index', [
+                'company_id' => $company->id,
+                'risk_profile_item_id' => $profileItem->id,
+                'origin' => 'risk_measures',
+                'focus' => 'follow_up',
+                'scope' => 'attention',
+            ]))
+        )
+        ->assertSee('returnContext', false)
+        ->assertSee('worker_risk_profile', false)
+        ->assertSee('follow_up', false);
 });
 
 test('users cannot manage risk measures outside their tenant perimeter', function () {
