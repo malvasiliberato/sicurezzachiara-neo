@@ -75,6 +75,25 @@ const starterPriorityBadge = {
   medium: "bg-warning-subtle text-warning",
   low: "bg-success-subtle text-success",
 };
+
+const focusWorkQueue = props.workspaceBridge.workQueue ?? [];
+const operationalQueue = props.workspaceBridge.operationalQueue ?? [];
+
+const queueToneBadgeClasses = {
+  danger: "bg-danger-subtle text-danger",
+  warning: "bg-warning-subtle text-warning",
+  primary: "bg-primary-subtle text-primary",
+  info: "bg-info-subtle text-info",
+  secondary: "bg-light text-body",
+};
+
+const queueToneButtonClasses = {
+  danger: "btn-soft-danger",
+  warning: "btn-soft-warning",
+  primary: "btn-soft-primary",
+  info: "btn-soft-info",
+  secondary: "btn-soft-secondary",
+};
 </script>
 
 <template>
@@ -218,6 +237,39 @@ const starterPriorityBadge = {
           <div class="fw-semibold mb-1">{{ workspaceBridge.suggestedAction.label }}</div>
           <div class="text-muted fs-13">{{ workspaceBridge.suggestedAction.helper }}</div>
         </div>
+        <div v-if="focusWorkQueue.length" class="rounded-3 bg-light-subtle border mb-3 overflow-hidden">
+          <div class="px-3 py-2 border-bottom text-uppercase text-muted fw-semibold fs-12">
+            Coda di lavoro minima
+          </div>
+          <div
+            v-for="(item, index) in focusWorkQueue"
+            :key="item.key"
+            class="d-flex align-items-start justify-content-between gap-3 px-3 py-3"
+            :class="{ 'border-top': index > 0 }"
+          >
+            <div class="flex-grow-1">
+              <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                <span class="fw-semibold">{{ item.label }}</span>
+                <span class="badge bg-light text-body">{{ item.count }}</span>
+                <span
+                  v-if="item.laneLabel"
+                  class="badge"
+                  :class="queueToneBadgeClasses[item.tone] || 'bg-light text-body'"
+                >
+                  {{ item.laneLabel }}
+                </span>
+              </div>
+              <div class="text-muted fs-13">{{ item.helper }}</div>
+            </div>
+            <Link
+              :href="item.actionRoute"
+              class="btn btn-sm"
+              :class="queueToneButtonClasses[item.tone] || 'btn-soft-primary'"
+            >
+              {{ item.actionLabel }}
+            </Link>
+          </div>
+        </div>
         <div class="hstack gap-2 flex-wrap">
           <Link :href="workspaceBridge.actions.registryRoute" class="btn btn-primary">
             {{ workspaceBridge.suggestedAction.label }}
@@ -231,6 +283,29 @@ const starterPriorityBadge = {
           <Link v-if="workspaceBridge.actions.dashboardRoute" :href="workspaceBridge.actions.dashboardRoute" class="btn btn-soft-warning">
             Torna alla dashboard
           </Link>
+        </div>
+        <div v-if="operationalQueue.length" class="border-top pt-3 mt-3">
+          <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-2">
+            <div>
+              <h6 class="mb-1">Corsie operative del profilo</h6>
+              <p class="text-muted mb-0 fs-13">
+                Il profilo rischio usa la stessa grammatica del cockpit e del registro: prima scegli la corsia, poi chiudi il lavoro.
+              </p>
+            </div>
+          </div>
+          <div class="d-flex align-items-stretch gap-2 flex-wrap">
+            <Link
+              v-for="item in operationalQueue"
+              :key="item.key"
+              :href="item.actionRoute"
+              class="btn btn-sm text-start"
+              :class="queueToneButtonClasses[item.tone] || 'btn-soft-secondary'"
+            >
+              <span class="fw-semibold d-block">{{ item.label }} <span class="ms-1">({{ item.count }})</span></span>
+              <span class="d-block fs-12" v-if="item.laneLabel">{{ item.laneLabel }}</span>
+              <span class="fs-12">{{ item.helper }}</span>
+            </Link>
+          </div>
         </div>
       </BCardBody>
     </BCard>
