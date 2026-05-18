@@ -104,8 +104,14 @@ const filterState = reactive({
   owner_user_id: props.activeOwnerUserId ?? "",
 });
 
+const isCompanyScopedRegistry = computed(() => props.workspaceContext.isCompanyScoped === true);
+
 const activeFilterCount = computed(() => {
-  return [filterState.scope !== "all", !!filterState.company_id, !!filterState.owner_user_id].filter(Boolean).length;
+  return [
+    filterState.scope !== "all",
+    !isCompanyScopedRegistry.value && !!filterState.company_id,
+    !!filterState.owner_user_id,
+  ].filter(Boolean).length;
 });
 
 const contextBadges = computed(() => {
@@ -122,6 +128,80 @@ const activeFamilyLabel = computed(() => {
   const activeTab = tabs.find((tab) => tab.value === props.activeFamily);
 
   return activeTab ? activeTab.label : "Tutte";
+});
+
+const heroCards = computed(() => {
+  if (isCompanyScopedRegistry.value && props.contextBridge) {
+    return [
+      {
+        key: "visible",
+        label: "Misure nel contesto",
+        value: props.summary.visibleMeasures,
+        helper: `${props.workspaceContext.companyName} | ${activeFamilyLabel.value}`,
+        avatarClass: "bg-primary-subtle text-primary",
+        icon: "ri-shield-check-line",
+      },
+      {
+        key: "overdue",
+        label: "Scadute",
+        value: props.contextBridge.stats.overdueMeasures,
+        helper: "Presidi oltre data da chiudere nel registro contestuale",
+        avatarClass: "bg-danger-subtle text-danger",
+        icon: "ri-time-line",
+      },
+      {
+        key: "follow-up",
+        label: "Follow-up aperti",
+        value: props.contextBridge.stats.followUpsOpen,
+        helper: "Rischi ancora in carico operativo nel perimetro aziendale",
+        avatarClass: "bg-warning-subtle text-warning",
+        icon: "ri-user-follow-line",
+      },
+      {
+        key: "uncovered",
+        label: "Rischi scoperti",
+        value: props.contextBridge.stats.uncoveredRisks,
+        helper: "Profili che chiedono ancora un presidio o un riallineamento",
+        avatarClass: "bg-info-subtle text-info",
+        icon: "ri-alert-line",
+      },
+    ];
+  }
+
+  return [
+    {
+      key: "total",
+      label: "Misure totali",
+      value: props.summary.totalMeasures,
+      helper: null,
+      avatarClass: "bg-primary-subtle text-primary",
+      icon: "ri-shield-check-line",
+    },
+    {
+      key: "implemented",
+      label: "Attuate",
+      value: props.summary.implementedMeasures,
+      helper: null,
+      avatarClass: "bg-success-subtle text-success",
+      icon: "ri-checkbox-circle-line",
+    },
+    {
+      key: "to-verify",
+      label: "Da verificare",
+      value: props.summary.toVerifyMeasures,
+      helper: null,
+      avatarClass: "bg-warning-subtle text-warning",
+      icon: "ri-time-line",
+    },
+    {
+      key: "follow-up",
+      label: "Misure in follow-up",
+      value: props.summary.followUpMeasures,
+      helper: `${props.summary.operationalMeasures} presidi | ${props.summary.trainingMeasures} formazione`,
+      avatarClass: "bg-secondary-subtle text-secondary",
+      icon: "ri-user-follow-line",
+    },
+  ];
 });
 
 const buildQuery = (overrides = {}) => {
@@ -167,7 +247,7 @@ const visitWithFilters = (family = props.activeFamily, overrides = {}) => {
 
 const resetFilters = () => {
   filterState.scope = "all";
-  filterState.company_id = "";
+  filterState.company_id = props.activeCompanyId ?? "";
   filterState.owner_user_id = "";
 
   visitWithFilters();
@@ -187,59 +267,21 @@ const starterPriorityBadge = {
     <PageHeader title="Registri misure" pageTitle="SicurezzaChiara" />
 
     <BRow class="g-4 mb-4">
-      <BCol md="6" xl="3">
+      <BCol v-for="card in heroCards" :key="card.key" md="6" xl="3">
         <BCard no-body class="card-animate h-100">
           <BCardBody>
-            <p class="text-uppercase fw-medium text-muted mb-3">Misure totali</p>
+            <p class="text-uppercase fw-medium text-muted mb-3">{{ card.label }}</p>
+            <div v-if="card.helper" class="text-muted fs-13 mb-2">
+              {{ card.helper }}
+            </div>
             <div class="d-flex align-items-center justify-content-between">
-              <h3 class="mb-0">{{ summary.totalMeasures }}</h3>
+              <h3 class="mb-0">{{ card.value }}</h3>
               <div class="avatar-sm">
-                <span class="avatar-title bg-primary-subtle text-primary rounded fs-3">
-                  <i class="ri-shield-check-line"></i>
+                <span class="avatar-title rounded fs-3" :class="card.avatarClass">
+                  <i :class="card.icon"></i>
                 </span>
               </div>
             </div>
-          </BCardBody>
-        </BCard>
-      </BCol>
-      <BCol md="6" xl="3">
-        <BCard no-body class="card-animate h-100">
-          <BCardBody>
-            <p class="text-uppercase fw-medium text-muted mb-3">Attuate</p>
-            <div class="d-flex align-items-center justify-content-between">
-              <h3 class="mb-0">{{ summary.implementedMeasures }}</h3>
-              <div class="avatar-sm">
-                <span class="avatar-title bg-success-subtle text-success rounded fs-3">
-                  <i class="ri-checkbox-circle-line"></i>
-                </span>
-              </div>
-            </div>
-          </BCardBody>
-        </BCard>
-      </BCol>
-      <BCol md="6" xl="3">
-        <BCard no-body class="card-animate h-100">
-          <BCardBody>
-            <p class="text-uppercase fw-medium text-muted mb-3">Da verificare</p>
-            <div class="d-flex align-items-center justify-content-between">
-              <h3 class="mb-0">{{ summary.toVerifyMeasures }}</h3>
-              <div class="avatar-sm">
-                <span class="avatar-title bg-warning-subtle text-warning rounded fs-3">
-                  <i class="ri-time-line"></i>
-                </span>
-              </div>
-            </div>
-          </BCardBody>
-        </BCard>
-      </BCol>
-      <BCol md="6" xl="3">
-        <BCard no-body class="card-animate h-100">
-          <BCardBody>
-            <p class="text-uppercase fw-medium text-muted mb-3">Misure in follow-up</p>
-            <div class="text-muted fs-13 mb-2">
-              {{ summary.operationalMeasures }} presidi | {{ summary.trainingMeasures }} formazione
-            </div>
-            <h3 class="mb-0">{{ summary.followUpMeasures }}</h3>
           </BCardBody>
         </BCard>
       </BCol>
@@ -255,7 +297,9 @@ const starterPriorityBadge = {
             </p>
           </div>
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              <span class="badge bg-soft-info text-info">{{ tenant.name }}</span>
+              <span class="badge bg-soft-info text-info">
+                {{ isCompanyScopedRegistry ? workspaceContext.contextLabel : tenant.name }}
+              </span>
               <span class="badge bg-light text-body">{{ summary.trainingMeasures }} formazione</span>
               <span class="badge bg-light text-body">{{ summary.medicalMeasures }} visite</span>
               <span class="badge bg-light text-body">{{ summary.dpiMeasures }} DPI</span>
@@ -329,6 +373,9 @@ const starterPriorityBadge = {
               <p class="text-muted mb-0 fs-13">
                 {{ workspaceContext.narrative }}
               </p>
+              <div v-if="isCompanyScopedRegistry" class="text-muted fs-13 mt-2">
+                Azienda fissata dal contesto: {{ workspaceContext.companyName }}.
+              </div>
               <div class="text-muted fs-13 mt-2">
                 {{ summary.visibleMeasures }} record visibili su {{ summary.contextMeasures }} nel contesto corrente | Registro attivo: {{ activeFamilyLabel }}
               </div>
@@ -384,7 +431,7 @@ const starterPriorityBadge = {
                 </option>
               </select>
             </BCol>
-            <BCol lg="4">
+            <BCol v-if="workspaceContext.showCompanyFilter" lg="4">
               <label class="form-label">Azienda</label>
               <select v-model="filterState.company_id" class="form-select">
                 <option value="">Tutte le aziende</option>
@@ -393,7 +440,7 @@ const starterPriorityBadge = {
                 </option>
               </select>
             </BCol>
-            <BCol lg="4">
+            <BCol :lg="workspaceContext.showCompanyFilter ? 4 : 8">
               <label class="form-label">Referente operativo</label>
               <select v-model="filterState.owner_user_id" class="form-select">
                 <option value="">Tutti i referenti</option>

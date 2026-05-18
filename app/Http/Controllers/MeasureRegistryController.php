@@ -343,26 +343,34 @@ class MeasureRegistryController extends Controller
             'risk_measures' => 'Gestione misure rischio',
         ];
 
+        $isCompanyScoped = $companyId !== null;
+        $selectedCompanyName = $companyId ? $companyLabels->get($companyId) : null;
+
         $workspaceContext = [
+            'mode' => $isCompanyScoped ? 'company_scoped' : 'portfolio',
+            'isCompanyScoped' => $isCompanyScoped,
+            'showCompanyFilter' => ! $isCompanyScoped,
             'origin' => $origin,
             'originLabel' => $origin ? ($originLabels[$origin] ?? $origin) : null,
             'focus' => $focus,
             'focusLabel' => $focus ? ($focusLabels[$focus] ?? $focus) : null,
-            'companyName' => $companyId ? $companyLabels->get($companyId) : null,
+            'companyName' => $selectedCompanyName,
             'ownerName' => $ownerUserId
                 ? $ownerOptions->firstWhere('value', $ownerUserId)['label'] ?? null
                 : null,
+            'contextLabel' => $isCompanyScoped ? 'Registro contestuale azienda' : 'Workspace portfolio',
             'backRoute' => $origin === 'dashboard'
                 ? route('dashboard', $focus && $focus !== 'all' ? ['focus' => $focus] : [])
                 : null,
-            'narrative' => collect([
-                $origin ? 'Origine: '.($originLabels[$origin] ?? $origin) : null,
-                $focus ? 'Focus: '.($focusLabels[$focus] ?? $focus) : null,
-                $companyId ? 'Azienda: '.$companyLabels->get($companyId) : null,
-                $ownerUserId ? 'Referente: '.($ownerOptions->firstWhere('value', $ownerUserId)['label'] ?? 'N/D') : null,
-            ])->filter()->isEmpty()
-                ? 'Usa i filtri per aprire una corsia di lavoro piu\' stretta per azienda, referente o stato operativo.'
-                : 'Stai leggendo il registro in un contesto operativo gia\' definito. Puoi stringere subito la vista sulle corsie piu\' utili.',
+            'narrative' => match (true) {
+                $isCompanyScoped => 'Stai lavorando solo dentro '.$selectedCompanyName.'. Qui conviene stringere il registro per stato operativo o referente, non riaprire il portfolio.',
+                collect([
+                    $origin ? 'Origine: '.($originLabels[$origin] ?? $origin) : null,
+                    $focus ? 'Focus: '.($focusLabels[$focus] ?? $focus) : null,
+                    $ownerUserId ? 'Referente: '.($ownerOptions->firstWhere('value', $ownerUserId)['label'] ?? 'N/D') : null,
+                ])->filter()->isEmpty() => 'Usa i filtri per aprire una corsia di lavoro piu\' stretta per azienda, referente o stato operativo.',
+                default => 'Stai leggendo il registro in un contesto operativo gia\' definito. Puoi stringere subito la vista sulle corsie piu\' utili.',
+            },
             'activeScopeLabel' => match ($scope) {
                 'attention' => 'In attenzione',
                 'overdue' => 'Scaduti',
