@@ -400,8 +400,8 @@ class MeasureRegistryController extends Controller
                 ? route('dashboard', $focus && $focus !== 'all' ? ['focus' => $focus] : [])
                 : null,
             'narrative' => match (true) {
-                $isCompanyScoped => 'Stai lavorando solo dentro '.$selectedCompanyName.'. Qui conviene stringere il registro per stato operativo o referente, non riaprire il portfolio.',
                 $originRiskContext !== null => 'Stai lavorando dentro il registro contestuale di '.$originRiskContext['riskName'].'. Chiudi qui i presidi aperti e poi rientra nel rischio di origine.',
+                $isCompanyScoped => 'Stai lavorando solo dentro '.$selectedCompanyName.'. Qui conviene stringere il registro per stato operativo o referente, non riaprire il portfolio.',
                 collect([
                     $origin ? 'Origine: '.($originLabels[$origin] ?? $origin) : null,
                     $focus ? 'Focus: '.($focusLabels[$focus] ?? $focus) : null,
