@@ -206,6 +206,85 @@ Nota operativa confermata sul server reale:
 
 ## Procedura deploy consigliata
 
+## Procedura operativa reale Plesk
+
+Questa e' la procedura da usare quando bisogna rendere effettivamente visibili online modifiche frontend/backend gia' presenti su `origin/main`.
+
+Nota critica emersa il 2026-05-20:
+- il record Git mostrato da Plesk puo' risultare aggiornato anche se il worktree realmente servito da Apache/nginx non e' stato aggiornato;
+- non basta verificare `--get-last-commit` dell'estensione Git;
+- bisogna verificare il commit nel document root reale e il manifest Vite pubblico.
+
+Document root reali:
+- `staging`: `/var/www/vhosts/sicurezzachiara.it/staging.sicurezzachiara.it/repo/public`
+- `area`: `/var/www/vhosts/sicurezzachiara.it/area.sicurezzachiara.it/repo/public`
+
+Worktree reali:
+- `staging`: `/var/www/vhosts/sicurezzachiara.it/staging.sicurezzachiara.it/repo`
+- `area`: `/var/www/vhosts/sicurezzachiara.it/area.sicurezzachiara.it/repo`
+
+### Deploy staging
+
+Eseguire nel worktree reale:
+
+```bash
+cd /var/www/vhosts/sicurezzachiara.it/staging.sicurezzachiara.it/repo
+git pull --ff-only origin main
+PATH="/opt/plesk/php/8.3/bin:/usr/local/bin:$PATH" COMPOSER_ALLOW_SUPERUSER=1 NPM_CI_FLAGS="--legacy-peer-deps" RUN_MIGRATIONS=0 bash ./scripts/deploy/plesk-post-deploy.sh .
+```
+
+### Deploy area
+
+Eseguire nel worktree reale:
+
+```bash
+cd /var/www/vhosts/sicurezzachiara.it/area.sicurezzachiara.it/repo
+git pull --ff-only origin main
+PATH="/opt/plesk/php/8.3/bin:/usr/local/bin:$PATH" COMPOSER_ALLOW_SUPERUSER=1 NPM_CI_FLAGS="--legacy-peer-deps" RUN_MIGRATIONS=0 bash ./scripts/deploy/plesk-post-deploy.sh .
+```
+
+### Esecuzione tramite Plesk quando non c'e' shell site-user diretta
+
+Usare un task temporaneo Plesk di tipo `exec` sulla subscription `sicurezzachiara.it`:
+- creare task non attivo con comando `bash -lc '...'`;
+- eseguirlo subito;
+- cancellarlo subito dopo;
+- non lasciare task temporanei appesi.
+
+Il comando interno del task deve essere uno dei due blocchi sopra, racchiuso in `bash -lc`.
+
+### Verifiche obbligatorie post deploy
+
+Verifica commit del worktree servito:
+
+```bash
+cd /var/www/vhosts/sicurezzachiara.it/<dominio>/repo
+git rev-parse HEAD
+```
+
+Verifica manifest pubblico:
+
+```bash
+sha256sum public/build/manifest.json
+```
+
+Poi controllare via HTTP:
+
+```text
+https://staging.sicurezzachiara.it/build/manifest.json
+https://area.sicurezzachiara.it/build/manifest.json
+https://staging.sicurezzachiara.it/login
+https://area.sicurezzachiara.it/login
+```
+
+Per modifiche frontend, il manifest pubblico deve cambiare rispetto al precedente e deve contenere gli hash generati dalla build corrente. Se il commit Plesk risulta aggiornato ma il manifest resta vecchio, il deploy non e' realmente applicato al worktree servito.
+
+### Regola staging/area
+
+- `staging`: puo' aggiornarsi automaticamente dopo CI verde, ma va comunque verificato il worktree reale se le modifiche non sono visibili.
+- `area`: resta promozione manuale dopo smoke su staging.
+- migration remote: sempre manuali dopo backup DB.
+
 ### 1. Verifica pre-deploy
 
 - `git rev-parse HEAD`
