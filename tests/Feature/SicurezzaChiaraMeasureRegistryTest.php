@@ -18,8 +18,8 @@ test('measure registry groups specialized families inside a single workspace', f
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('sicurezzachiara/measure-registries/Index')
-            ->where('copy.workspaceTitle', 'Registri famiglia misure')
-            ->where('copy.workspaceHelper', 'Workspace unico delle misure collegate ai rischi. Le tab DPI, formazione e visite mediche filtrano la stessa base operativa per famiglia.')
+            ->where('copy.workspaceTitle', 'Misure per famiglia')
+            ->where('copy.workspaceHelper', 'Qui trovi le azioni nate dal profilo rischio: DPI, formazione, visite mediche e misure operative. Le tab filtrano la stessa base operativa per famiglia.')
             ->where('copy.familyColumnLabel', 'Famiglia')
         )
         ->assertSee('coreStarterPack', false)

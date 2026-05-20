@@ -19,5 +19,5 @@ test('registration creates a tenant workspace and owner membership', function ()
     expect($user->tenantMemberships()->count())->toBe(1);
     expect($user->tenantMemberships()->first()->role)->toBe(TenantMembership::ROLE_OWNER);
 
-    $response->assertRedirect('/');
+    $response->assertRedirect(route('companies.index'));
 })->skip(fn () => ! Features::enabled(Features::registration()), 'Registration support is not enabled.');
