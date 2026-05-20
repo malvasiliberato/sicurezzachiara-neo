@@ -10,6 +10,8 @@ use App\Models\Company;
 use App\Models\CompanySite;
 use App\Models\EquipmentType;
 use App\Models\JobRole;
+use App\Models\RiskMeasure;
+use App\Models\RiskProfileItem;
 use App\Models\Tenant;
 use App\Models\WorkplaceType;
 use App\Support\AuditLogger;
@@ -27,34 +29,79 @@ class CompanyController extends Controller
 {
     public function __construct()
     {
-        $this->middleware(EnsureTenantCanManageData::class)->only(['create', 'store', 'edit', 'update']);
+        $this->middleware(EnsureTenantCanManageData::class)->only(['create', 'store', 'edit', 'update', 'destroy', 'restore']);
     }
 
     public function index(Request $request, CurrentTenantResolver $tenantResolver): Response
     {
         $tenant = $tenantResolver->resolve($request->user());
+        $view = $request->string('view')->lower()->value() === 'trashed' ? 'trashed' : 'active';
 
-        $companies = $tenant->companies()
+        $baseCompaniesQuery = $tenant->companies()
+            ->withTrashed()
             ->with([
-                'sites:id,company_id',
+                'atecoEntry:id,codice',
+                'sites:id,company_id,name,city,province,is_headquarters',
                 'sites.workplaces:id,company_site_id',
+                'riskProfileItems:id,profileable_type,profileable_id,operational_status,review_due_at,follow_up_status',
+                'riskMeasures:id,profileable_type,profileable_id,status,due_date',
             ])
             ->withCount(['sites', 'workers', 'equipmentAssets', 'jobRoleAssignments', 'riskProfileItems'])
-            ->orderBy('name')
-            ->get();
+            ->orderBy('name');
+
+        $companiesQuery = clone $baseCompaniesQuery;
+
+        if ($view === 'trashed') {
+            $companiesQuery->onlyTrashed();
+        } else {
+            $companiesQuery->whereNull('companies.deleted_at');
+        }
+
+        $companies = $companiesQuery->get();
+        $activeCompanies = $view === 'active'
+            ? $companies
+            : (clone $baseCompaniesQuery)->whereNull('companies.deleted_at')->get();
+        $activeCount = (int) $tenant->companies()->count();
+        $trashedCount = (int) $tenant->companies()->onlyTrashed()->count();
+        $readyCompaniesCount = (int) $activeCompanies
+            ->filter(fn (Company $company) => $this->buildAreaOneJourneySummary($company)['completedSteps'] >= $this->buildAreaOneJourneySummary($company)['totalSteps'])
+            ->count();
+        $companiesWithAlertsCount = (int) $activeCompanies
+            ->filter(function (Company $company) {
+                $governance = $this->buildPortfolioGovernanceSummary($company);
+
+                return $governance['risksToVerify'] > 0
+                    || $governance['pendingMeasures'] > 0
+                    || $governance['reviewsOpen'] > 0
+                    || $governance['overdueMeasures'] > 0;
+            })
+            ->count();
+        $mappedCompanies = $companies->map(fn (Company $company) => [
+            ...$company->toArray(),
+            'area_one_journey' => $this->buildAreaOneJourneySummary($company),
+            'table_context' => $this->buildCompanyTableContext($company),
+            'portfolio_governance' => $this->buildPortfolioGovernanceSummary($company),
+            'location_label' => $this->buildCompanyLocationLabel($company),
+            'is_deleted' => $company->trashed(),
+        ])->values();
 
         return Inertia::render('sicurezzachiara/companies/Index', [
             'tenant' => $tenant->only(['id', 'name', 'slug']),
-            'companies' => $companies->map(fn (Company $company) => [
-                ...$company->toArray(),
-                'area_one_journey' => $this->buildAreaOneJourneySummary($company),
-            ])->values(),
+            'companies' => $mappedCompanies,
             'summary' => [
                 'companiesCount' => $companies->count(),
                 'sitesCount' => (int) $companies->sum('sites_count'),
                 'workersCount' => (int) $companies->sum('workers_count'),
                 'workplacesCount' => (int) $companies->sum(fn (Company $company) => $company->sites->sum(fn ($site) => $site->workplaces->count())),
                 'equipmentCount' => (int) $companies->sum('equipment_assets_count'),
+                'activeCompaniesCount' => $activeCount,
+                'trashedCompaniesCount' => $trashedCount,
+                'readyCompaniesCount' => $readyCompaniesCount,
+                'incompleteCompaniesCount' => max($activeCount - $readyCompaniesCount, 0),
+                'companiesWithAlertsCount' => $companiesWithAlertsCount,
+            ],
+            'filters' => [
+                'view' => $view,
             ],
             'areaOne' => [
                 'label' => 'Area 1 - Gestione azienda',
@@ -274,6 +321,65 @@ class CompanyController extends Controller
         return redirect()
             ->route('companies.edit', $company)
             ->with('success', 'Azienda aggiornata correttamente.');
+    }
+
+    public function destroy(
+        Request $request,
+        Company $company,
+        CurrentTenantResolver $tenantResolver,
+        AuditLogger $auditLogger,
+    ): RedirectResponse {
+        $tenant = $tenantResolver->resolve($request->user());
+        $company = $this->companyForTenant($tenant, $company);
+
+        $companyName = $company->name;
+        $company->delete();
+
+        $auditLogger->log(
+            $tenant,
+            $request->user(),
+            'company.deleted',
+            $company,
+            'Azienda rimossa dal portfolio: '.$companyName,
+            [
+                'company_name' => $companyName,
+                'soft_deleted' => true,
+            ],
+        );
+
+        return redirect()
+            ->route('companies.index')
+            ->with('success', 'Azienda rimossa dal portfolio. I dati non sono stati eliminati definitivamente.');
+    }
+
+    public function restore(
+        Request $request,
+        int $company,
+        CurrentTenantResolver $tenantResolver,
+        AuditLogger $auditLogger,
+    ): RedirectResponse {
+        $tenant = $tenantResolver->resolve($request->user());
+        $company = $tenant->companies()->withTrashed()->findOrFail($company);
+
+        abort_unless($company->trashed(), 404);
+
+        $company->restore();
+
+        $auditLogger->log(
+            $tenant,
+            $request->user(),
+            'company.restored',
+            $company,
+            'Azienda ripristinata nel portfolio: '.$company->name,
+            [
+                'company_name' => $company->name,
+                'restored' => true,
+            ],
+        );
+
+        return redirect()
+            ->route('companies.index', ['view' => 'trashed'])
+            ->with('success', 'Azienda ripristinata correttamente nel portfolio.');
     }
 
     private function companyForTenant(Tenant $tenant, Company $company): Company
@@ -749,6 +855,88 @@ class CompanyController extends Controller
         ];
     }
 
+    private function buildCompanyTableContext(Company $company): array
+    {
+        $workplacesCount = (int) $company->sites->sum(fn ($site) => $site->workplaces->count());
+        $journey = $this->buildAreaOneJourneySummary($company);
+
+        return [
+            'progress' => $journey['completedSteps'].'/'.$journey['totalSteps'],
+            'sitesLabel' => $company->sites_count === 1 ? '1 sede' : $company->sites_count.' sedi',
+            'workplacesLabel' => $workplacesCount === 1 ? '1 luogo' : $workplacesCount.' luoghi',
+            'equipmentLabel' => $company->equipment_assets_count === 1 ? '1 macchinario' : $company->equipment_assets_count.' macchinari',
+            'workersLabel' => $company->workers_count === 1 ? '1 lavoratore' : $company->workers_count.' lavoratori',
+            'jobRolesLabel' => $company->jobRoleAssignments_count === 1 ? '1 mansione assegnata' : $company->jobRoleAssignments_count.' mansioni assegnate',
+        ];
+    }
+
+    private function buildCompanyLocationLabel(Company $company): ?string
+    {
+        if ($company->city && $company->province) {
+            return $company->city.' ('.$company->province.')';
+        }
+
+        $headquarters = $company->sites->first(fn (CompanySite $site) => $site->is_headquarters)
+            ?? $company->sites->first();
+
+        if (! $headquarters || ! $headquarters->city || ! $headquarters->province) {
+            return null;
+        }
+
+        return $headquarters->city.' ('.$headquarters->province.')';
+    }
+
+    private function buildPortfolioGovernanceSummary(Company $company): array
+    {
+        $today = now();
+        $profileItems = $company->riskProfileItems;
+        $measures = $company->riskMeasures;
+
+        $risksToVerify = $profileItems
+            ->filter(fn (RiskProfileItem $item) => $item->operational_status === RiskProfileItem::OPERATIONAL_STATUS_ACTIVE)
+            ->count();
+        $reviewsOpen = $profileItems
+            ->filter(fn (RiskProfileItem $item) => $item->isReviewDue($today))
+            ->count();
+        $followUpsOpen = $profileItems
+            ->filter(fn (RiskProfileItem $item) => $item->hasOpenFollowUp())
+            ->count();
+        $pendingMeasures = $measures
+            ->filter(fn (RiskMeasure $measure) => $measure->status !== RiskMeasure::STATUS_IMPLEMENTED)
+            ->count();
+        $overdueMeasures = $measures
+            ->filter(fn (RiskMeasure $measure) => $measure->due_date !== null
+                && $measure->status !== RiskMeasure::STATUS_IMPLEMENTED
+                && $measure->due_date->isPast())
+            ->count();
+
+        $headline = match (true) {
+            $overdueMeasures > 0 => 'Scadenze aperte',
+            $reviewsOpen > 0 => 'Review da chiudere',
+            $pendingMeasures > 0 => 'Misure da presidiare',
+            $risksToVerify > 0 => 'Da verificare nel profilo',
+            default => 'Nessuna urgenza',
+        };
+
+        $helper = match (true) {
+            $overdueMeasures > 0 => $overdueMeasures.' misure risultano oltre la data prevista.',
+            $reviewsOpen > 0 => $reviewsOpen.' decisioni consulenziali restano aperte.',
+            $pendingMeasures > 0 => $pendingMeasures.' misure richiedono ancora collegamento o verifica.',
+            $risksToVerify > 0 => $risksToVerify.' rischi attendono lettura operativa nel profilo.',
+            default => 'La configurazione puo\' proseguire senza criticita\' immediate.',
+        };
+
+        return [
+            'headline' => $headline,
+            'helper' => $helper,
+            'risksToVerify' => $risksToVerify,
+            'pendingMeasures' => $pendingMeasures,
+            'reviewsOpen' => $reviewsOpen,
+            'followUpsOpen' => $followUpsOpen,
+            'overdueMeasures' => $overdueMeasures,
+        ];
+    }
+
     private function buildAreaOneJourney(Company $company, array $contextBridge, array $summary): array
     {
         $firstSite = $company->sites->first();
@@ -890,8 +1078,14 @@ class CompanyController extends Controller
             'completedSteps' => $completedSteps,
             'totalSetupSteps' => 5,
             'setupComplete' => $completedSteps >= 5,
+            'progressLabel' => $completedSteps.'/5 step completati',
             'currentStep' => $currentStep,
             'governanceStep' => collect($steps)->firstWhere('number', 6),
+            'setupPrimaryAction' => $currentStep['primaryAction'],
+            'setupSecondaryAction' => $currentStep['secondaryAction'],
+            'nextMilestone' => $completedSteps >= 5
+                ? 'Il contesto minimo e\' pronto: puoi leggere il primo profilo rischio e passare a misure, registri e DVR light.'
+                : 'Completa il contesto minimo dell\'azienda per vedere presto un primo profilo rischio leggibile.',
             'steps' => $steps,
         ];
     }

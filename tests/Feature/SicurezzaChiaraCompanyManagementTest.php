@@ -3,6 +3,7 @@
 use App\Actions\Tenant\CreateTenantWorkspace;
 use App\Models\Ateco2025;
 use App\Models\Company;
+use App\Models\CompanySite;
 use App\Models\EquipmentAsset;
 use App\Models\EquipmentType;
 use App\Models\JobRole;
@@ -636,6 +637,9 @@ test('company detail surfaces contextual core starter pack signals', function ()
             ->where('areaOneJourney.currentStep.number', 5)
             ->where('areaOneJourney.governanceStep.number', 6)
             ->where('areaOneJourney.setupComplete', true)
+            ->where('areaOneJourney.progressLabel', '5/5 step completati')
+            ->where('areaOneJourney.setupPrimaryAction.label', 'Apri profilo rischio')
+            ->where('areaOneJourney.setupSecondaryAction.label', 'Consulta DVR iniziale')
             ->where('contextBridge.actions.riskProfileRoute', route('companies.risk-profile.show', [
                 'company' => $company,
                 'origin' => 'company_show',
@@ -791,4 +795,201 @@ test('company sections can be opened as dedicated filtered views', function () {
             ->has('assets', 1)
             ->where('assets.0.name', 'Carrello elevatore')
         );
+});
+
+test('portfolio companies list hides soft deleted companies', function () {
+    $user = User::factory()->create();
+
+    app(CreateTenantWorkspace::class)->handle($user, 'Studio Test');
+
+    $visibleCompany = Company::query()->create([
+        'tenant_id' => $user->fresh()->current_tenant_id,
+        'name' => 'Metalnova S.r.l.',
+        'industry' => 'Metalmeccanica',
+    ]);
+
+    $hiddenCompany = Company::query()->create([
+        'tenant_id' => $user->fresh()->current_tenant_id,
+        'name' => 'Logiport S.r.l.',
+        'industry' => 'Logistica',
+    ]);
+
+    $hiddenCompany->delete();
+
+    $this->actingAs($user)
+        ->get(route('companies.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('sicurezzachiara/companies/Index')
+            ->where('filters.view', 'active')
+            ->where('summary.activeCompaniesCount', 1)
+            ->where('summary.trashedCompaniesCount', 1)
+            ->has('companies', 1)
+            ->where('companies.0.name', $visibleCompany->name)
+            ->where('companies.0.is_deleted', false)
+        )
+        ->assertSee('Metalnova S.r.l.')
+        ->assertDontSee('Logiport S.r.l.');
+});
+
+test('portfolio can show only soft deleted companies', function () {
+    $user = User::factory()->create();
+
+    app(CreateTenantWorkspace::class)->handle($user, 'Studio Test');
+
+    $activeCompany = Company::query()->create([
+        'tenant_id' => $user->fresh()->current_tenant_id,
+        'name' => 'Metalnova S.r.l.',
+    ]);
+
+    $trashedCompany = Company::query()->create([
+        'tenant_id' => $user->fresh()->current_tenant_id,
+        'name' => 'Logiport S.r.l.',
+    ]);
+
+    $trashedCompany->delete();
+
+    $this->actingAs($user)
+        ->get(route('companies.index', ['view' => 'trashed']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('sicurezzachiara/companies/Index')
+            ->where('filters.view', 'trashed')
+            ->where('summary.activeCompaniesCount', 1)
+            ->where('summary.trashedCompaniesCount', 1)
+            ->has('companies', 1)
+            ->where('companies.0.name', $trashedCompany->name)
+            ->where('companies.0.is_deleted', true)
+        )
+        ->assertSee('Logiport S.r.l.')
+        ->assertDontSee($activeCompany->name);
+});
+
+test('company destroy performs soft delete and preserves related records', function () {
+    $user = User::factory()->create();
+
+    app(CreateTenantWorkspace::class)->handle($user, 'Studio Test');
+
+    $this->actingAs($user);
+
+    $company = Company::query()->create([
+        'tenant_id' => $user->fresh()->current_tenant_id,
+        'name' => 'Metalnova S.r.l.',
+    ]);
+
+    $site = CompanySite::query()->create([
+        'company_id' => $company->id,
+        'name' => 'Stabilimento principale',
+        'site_code' => 'HQ',
+        'is_headquarters' => true,
+    ]);
+
+    $worker = Worker::query()->create([
+        'company_id' => $company->id,
+        'primary_site_id' => $site->id,
+        'first_name' => 'Mario',
+        'last_name' => 'Rossi',
+        'status' => 'active',
+    ]);
+
+    $response = $this->delete(route('companies.destroy', $company));
+
+    $response->assertRedirect(route('companies.index'));
+    $response->assertSessionHas('success', 'Azienda rimossa dal portfolio. I dati non sono stati eliminati definitivamente.');
+
+    expect(Company::query()->count())->toBe(0)
+        ->and(Company::withTrashed()->count())->toBe(1)
+        ->and(Company::withTrashed()->first()->deleted_at)->not->toBeNull()
+        ->and(CompanySite::query()->count())->toBe(1)
+        ->and(Worker::query()->count())->toBe(1)
+        ->and($worker->fresh())->not->toBeNull();
+
+    $this->get(route('companies.index'))
+        ->assertOk()
+        ->assertDontSee('Metalnova S.r.l.');
+});
+
+test('company restore brings soft deleted company back to active portfolio', function () {
+    $user = User::factory()->create();
+
+    app(CreateTenantWorkspace::class)->handle($user, 'Studio Test');
+
+    $this->actingAs($user);
+
+    $company = Company::query()->create([
+        'tenant_id' => $user->fresh()->current_tenant_id,
+        'name' => 'Metalnova S.r.l.',
+    ]);
+
+    $site = CompanySite::query()->create([
+        'company_id' => $company->id,
+        'name' => 'Stabilimento principale',
+        'site_code' => 'HQ',
+        'is_headquarters' => true,
+    ]);
+
+    $company->delete();
+
+    $response = $this->post(route('companies.restore', $company->id));
+
+    $response->assertRedirect(route('companies.index', ['view' => 'trashed']));
+    $response->assertSessionHas('success', 'Azienda ripristinata correttamente nel portfolio.');
+
+    expect(Company::query()->count())->toBe(1)
+        ->and(Company::withTrashed()->count())->toBe(1)
+        ->and(Company::withTrashed()->first()->deleted_at)->toBeNull()
+        ->and(CompanySite::query()->count())->toBe(1)
+        ->and($site->fresh())->not->toBeNull();
+
+    $this->get(route('companies.index'))
+        ->assertOk()
+        ->assertSee('Metalnova S.r.l.');
+
+    $this->get(route('companies.index', ['view' => 'trashed']))
+        ->assertOk()
+        ->assertDontSee('Metalnova S.r.l.');
+});
+
+test('users cannot soft delete companies belonging to another tenant', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+
+    app(CreateTenantWorkspace::class)->handle($user, 'Studio Uno');
+    app(CreateTenantWorkspace::class)->handle($otherUser, 'Studio Due');
+
+    $company = Company::query()->create([
+        'tenant_id' => $user->fresh()->current_tenant_id,
+        'name' => 'Metalnova S.r.l.',
+    ]);
+
+    $this->actingAs($otherUser)
+        ->delete(route('companies.destroy', $company))
+        ->assertNotFound();
+
+    expect(Company::query()->count())->toBe(1)
+        ->and(Company::withTrashed()->count())->toBe(1)
+        ->and(Company::withTrashed()->first()->deleted_at)->toBeNull();
+});
+
+test('users cannot restore companies belonging to another tenant', function () {
+    $user = User::factory()->create();
+    $otherUser = User::factory()->create();
+
+    app(CreateTenantWorkspace::class)->handle($user, 'Studio Uno');
+    app(CreateTenantWorkspace::class)->handle($otherUser, 'Studio Due');
+
+    $company = Company::query()->create([
+        'tenant_id' => $user->fresh()->current_tenant_id,
+        'name' => 'Metalnova S.r.l.',
+    ]);
+
+    $company->delete();
+
+    $this->actingAs($otherUser)
+        ->post(route('companies.restore', $company->id))
+        ->assertNotFound();
+
+    expect(Company::query()->count())->toBe(0)
+        ->and(Company::withTrashed()->count())->toBe(1)
+        ->and(Company::withTrashed()->first()->deleted_at)->not->toBeNull();
 });

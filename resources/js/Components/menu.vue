@@ -65,23 +65,35 @@ export default {
         <li class="menu-title">
           <span>SicurezzaChiara</span>
         </li>
-        <li class="nav-item">
-          <Link class="nav-link menu-link" href="/">
-          <i class="ri-dashboard-2-line"></i>
-          <span>Dashboard</span>
-          </Link>
-        </li>
         <li class="menu-title mt-2">
-          <span>Area 1 - Gestione azienda</span>
+          <span>Aziende</span>
         </li>
         <li class="nav-item">
           <Link class="nav-link menu-link" :href="route('companies.index')">
           <i class="ri-building-4-line"></i>
-          <span>Aziende</span>
+          <span>Portfolio aziende</span>
+          </Link>
+        </li>
+        <li class="nav-item">
+          <Link class="nav-link menu-link" :href="route('companies.create')">
+          <i class="ri-add-circle-line"></i>
+          <span>Nuova azienda</span>
           </Link>
         </li>
         <li class="menu-title mt-2">
-          <span>Area 2 - Metodo di lavoro</span>
+          <span>Metodo</span>
+        </li>
+        <li class="nav-item">
+          <Link class="nav-link menu-link" :href="route('sicurezzachiara.method')">
+          <i class="ri-function-line"></i>
+          <span>Panoramica metodo</span>
+          </Link>
+        </li>
+        <li class="nav-item">
+          <Link class="nav-link menu-link" :href="route('risk-catalog.index')">
+          <i class="ri-alert-line"></i>
+          <span>Rischi</span>
+          </Link>
         </li>
         <li class="nav-item">
           <Link class="nav-link menu-link" :href="route('job-roles.index')">
@@ -90,15 +102,24 @@ export default {
           </Link>
         </li>
         <li class="nav-item">
-          <Link class="nav-link menu-link" :href="route('risk-catalog.index')">
-          <i class="ri-alert-line"></i>
-          <span>Catalogo rischi</span>
+          <Link class="nav-link menu-link" :href="route('equipment-types.index')">
+          <i class="ri-settings-3-line"></i>
+          <span>Tipologie macchinario</span>
           </Link>
         </li>
         <li class="nav-item">
-          <Link class="nav-link menu-link" :href="route('measure-registries.index')">
-          <i class="ri-shield-check-line"></i>
-          <span>Registri misure</span>
+          <Link class="nav-link menu-link" :href="route('workplace-types.index')">
+          <i class="ri-map-pin-2-line"></i>
+          <span>Tipologie luogo</span>
+          </Link>
+        </li>
+        <li class="menu-title mt-2">
+          <span>Workspace</span>
+        </li>
+        <li class="nav-item">
+          <Link class="nav-link menu-link" href="/">
+          <i class="ri-dashboard-2-line"></i>
+          <span>Dashboard</span>
           </Link>
         </li>
         <li class="menu-title mt-2">

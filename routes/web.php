@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
     Route::controller(VelzonRoutesController::class)->group(function () {
         Route::get('/', 'dashboard')->name('dashboard');
+        Route::get('/sicurezzachiara/metodo', 'sicurezzachiara_method')->name('sicurezzachiara.method');
         Route::get('/sicurezzachiara/ui-reference', 'sicurezzachiara_ui_reference')->name('sicurezzachiara.ui-reference');
     });
 
@@ -33,6 +34,11 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified']
         ->except(['destroy'])
         ->parameters(['aziende' => 'company'])
         ->names('companies');
+    Route::delete('/aziende/{company}', [CompanyController::class, 'destroy'])
+        ->name('companies.destroy');
+    Route::post('/aziende/{company}/ripristina', [CompanyController::class, 'restore'])
+        ->withTrashed()
+        ->name('companies.restore');
 
     Route::get('/cataloghi/ateco/ricerca', [Ateco2025Controller::class, 'search'])
         ->name('ateco.search');
