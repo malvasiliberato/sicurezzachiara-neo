@@ -78,7 +78,7 @@
 
                 .icon-dual {
                     color: var(--#{$prefix}vertical-menu-item-hover-color);
-                    fill: rgba($primary, 0.16);
+                    fill: var(--#{$prefix}vertical-menu-item-bg);
                 }
             }
 
@@ -100,7 +100,7 @@
 
                     .icon-dual {
                         color: var(--#{$prefix}vertical-menu-item-hover-color);
-                        fill: rgba($primary, 0.16);
+                        fill: var(--#{$prefix}vertical-menu-item-bg);
                     }
 
                     &:after {

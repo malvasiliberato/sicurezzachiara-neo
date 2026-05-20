@@ -60,7 +60,7 @@ const tabs = [
   { value: "training", label: "Formazione", icon: "ri-graduation-cap-line" },
   { value: "medical", label: "Visite mediche", icon: "ri-stethoscope-line" },
   { value: "dpi", label: "DPI", icon: "ri-user-star-line" },
-  { value: "operational", label: "Presidi", icon: "ri-tools-line" },
+  { value: "operational", label: "Misure operative", icon: "ri-tools-line" },
   { value: "follow_up", label: "In carico", icon: "ri-user-follow-line" },
 ];
 
@@ -146,7 +146,7 @@ const heroCards = computed(() => {
         key: "overdue",
         label: "Scadute",
         value: props.contextBridge.stats.overdueMeasures,
-        helper: "Presidi oltre data da chiudere nel registro contestuale",
+        helper: "Misure oltre data da chiudere nel registro contestuale",
         avatarClass: "bg-danger-subtle text-danger",
         icon: "ri-time-line",
       },
@@ -335,11 +335,11 @@ const laneBadgeClasses = {
               <span class="badge bg-light text-body">{{ summary.trainingMeasures }} formazione</span>
               <span class="badge bg-light text-body">{{ summary.medicalMeasures }} visite</span>
               <span class="badge bg-light text-body">{{ summary.dpiMeasures }} DPI</span>
-              <span class="badge bg-light text-body">{{ summary.operationalMeasures }} presidi</span>
+              <span class="badge bg-light text-body">{{ summary.operationalMeasures }} misure operative</span>
               <span class="badge bg-success-subtle text-success">{{ summary.directMeasures }} dirette</span>
               <span class="badge bg-info-subtle text-info">{{ summary.substitutedMeasures }} equivalenti</span>
               <span class="badge bg-secondary-subtle text-secondary">{{ summary.freeMeasures }} libere</span>
-              <span class="badge bg-danger-subtle text-danger">{{ summary.expectedGapRisks }} rischi con gap attesi</span>
+              <span class="badge bg-danger-subtle text-danger">{{ summary.expectedGapRisks }} rischi con misure attese mancanti</span>
             </div>
           </div>
 
@@ -535,12 +535,12 @@ const laneBadgeClasses = {
             <div>
               <h6 class="mb-1">Starter pack core nel workspace</h6>
               <p class="text-muted mb-0 fs-13">
-                Il registro mostra anche quali segnali core stanno alimentando i rischi collegati ai presidi oggi visibili nel contesto corrente.
+                Il registro mostra anche quali segnali standard stanno alimentando i rischi collegati alle misure oggi visibili nel contesto corrente.
               </p>
             </div>
             <div class="d-flex align-items-center gap-2 flex-wrap">
               <span class="badge bg-soft-primary text-primary">{{ coreStarterPack.summary.sourceCount }} sorgenti</span>
-              <span class="badge bg-soft-info text-info">{{ coreStarterPack.summary.suggestedRisksCount }} rischi core</span>
+              <span class="badge bg-soft-info text-info">{{ coreStarterPack.summary.suggestedRisksCount }} rischi standard</span>
               <span class="badge bg-soft-warning text-warning">{{ coreStarterPack.summary.expectedMeasuresCount }} presidi attesi</span>
             </div>
           </div>

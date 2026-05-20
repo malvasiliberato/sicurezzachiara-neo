@@ -11,14 +11,32 @@ defineProps({
 });
 
 const form = useForm({
-    email: 'admin@themesbrand.com' || '',
-    password: '12345678' || '',
+    email: '',
+    password: '',
     remember: false,
+    ui_home_page: 'companies',
 });
+
+const normalizeHomePage = (homePage) => ['companies', 'dashboard', 'method'].includes(homePage)
+    ? homePage
+    : 'companies';
+
+const preferredHomePage = () => {
+    try {
+        const preferences = JSON.parse(localStorage.getItem('sicurezzachiara.theme.current') || '{}');
+
+        return normalizeHomePage(preferences.homePage);
+    } catch (error) {
+        localStorage.removeItem('sicurezzachiara.theme.current');
+
+        return 'companies';
+    }
+};
 
 const submit = () => {
     form.transform(data => ({
         ...data,
+        ui_home_page: preferredHomePage(),
         remember: form.remember ? 'on' : '',
     })).post(route('login'), {
         onFinish: () => form.reset('password'),
@@ -39,100 +57,88 @@ export default {
 <template>
     <Head title="Log in" />
 
-    <div class="auth-page-wrapper pt-5">
-        <div class="auth-one-bg-position auth-one-bg" id="auth-particles">
-            <div class="bg-overlay"></div>
-
-            <div class="shape">
-                <svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1440 120">
-                    <path d="M 0,36 C 144,53.6 432,123.2 720,124 C 1008,124.8 1296,56.8 1440,40L1440 140L0 140z"></path>
-                </svg>
-            </div>
-        </div>
-
-        <div class="auth-page-content">
+    <div class="auth-page-wrapper sc-login-page py-5 d-flex justify-content-center align-items-center min-vh-100">
+        <div class="auth-page-content sc-login-content overflow-hidden">
             <BContainer>
                 <BRow>
                     <BCol lg="12">
-                        <div class="text-center mt-sm-5 mb-4 text-white-50">
-                            <div>
-                                <Link href="/" class="d-inline-block auth-logo">
-                                <img src="@assets/images/logo-light.png" alt="" height="20">
-                                </Link>
-                            </div>
-                            <p class="mt-3 fs-15 fw-medium">Premium Admin & Dashboard Template</p>
-                        </div>
-                    </BCol>
-                </BRow>
-
-                <BRow class="justify-content-center">
-                    <BCol md="8" lg="6" xl="5">
-                        <BCard no-body class="mt-4">
-
-                            <BCardBody class="p-4">
-                                <div class="text-center mt-2">
-                                    <h5 class="text-primary">Welcome Back !</h5>
-                                    <p class="text-muted">Sign in to continue to Velzon.</p>
-                                </div>
-                                <div v-if="status" class="alert alert-success text-success">
-                                    {{ status }}
-                                </div>
-                                <div class="p-2 mt-3">
-                                    <form @submit.prevent="submit">
-
-                                        <div class="mb-3">
-                                            <InputLabel for="email" value="Email" />
-                                            <TextInput id="email" v-model="form.email" type="email" class="form-control" autofocus placeholder="Please enter email" autocomplete="email" required :class="{ 'is-invalid': form.errors.email }" />
-                                            <InputError :message="form.errors.email" />
-                                        </div>
-
-                                        <div class="mb-3">
-                                            <div class="float-end">
-                                                <Link v-if="canResetPassword" :href="route('password.request')" class="text-muted">Forgot
-                                                password?</Link>
+                        <BCard no-body class="sc-login-card overflow-hidden mb-0">
+                            <BRow class="g-0">
+                                <BCol lg="6">
+                                    <div class="sc-login-story p-lg-5 p-4 h-100">
+                                        <div class="sc-login-story-inner position-relative h-100 d-flex flex-column justify-content-center">
+                                            <div class="sc-login-brand-block">
+                                                <Link href="/" class="sc-login-brand d-inline-block">
+                                                    <img src="@assets/images/logo-payoff-light.png" alt="SicurezzaChiara - Ordine nella sicurezza" height="90">
+                                                </Link>
                                             </div>
-                                            <InputLabel for="password" value="Password" />
-                                            <div class="position-relative auth-pass-inputgroup mb-3">
-                                                <input :type="togglePassword ? 'text' : 'password'" class="form-control pe-5" placeholder="Enter password" id="password-input" v-model="form.password" autocomplete="password" required :class="{ 'is-invalid': form.errors.password }">
-                                                <BButton variant="link" class="position-absolute end-0 top-0 text-decoration-none text-muted" type="button" id="password-addon" @click="togglePassword = !togglePassword">
-                                                    <i class="ri-eye-fill align-middle"></i>
-                                                </BButton>
-                                                <InputError :message="form.errors.password" />
+
+                                            <div class="sc-login-story-copy">
+                                                <h2 class="text-white mb-3">Governo operativo della sicurezza aziendale</h2>
+                                                <p class="text-white-50 fs-15 mb-3">
+                                                    Rischi, misure, scadenze e DVR light in un unico workspace.
+                                                </p>
+                                                <p class="sc-login-story-note mb-0">
+                                                    Il sistema propone, il consulente verifica e governa.
+                                                </p>
                                             </div>
                                         </div>
+                                    </div>
+                                </BCol>
 
-                                        <div class="form-check">
-                                            <Checkbox v-model:checked="form.remember" name="remember" class="form-check-input" id="auth-remember-check" />
-                                            <label class="form-check-label" for="auth-remember-check">Remember
-                                                me</label>
-                                        </div>
-
-                                        <div class="mt-4">
-                                            <BButton variant="success" class="w-100" type="submit" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">Sign In</BButton>
-                                        </div>
-
-                                        <div class="mt-4 text-center">
-                                            <div class="signin-other-title">
-                                                <h5 class="fs-13 mb-4 title">Sign In with</h5>
-                                            </div>
+                                <BCol lg="6">
+                                    <BCardBody class="sc-login-form-panel p-lg-5 p-4 h-100 d-flex flex-column justify-content-center">
+                                        <div class="sc-login-form-inner">
                                             <div>
-                                                <BButton type="button" variant="primary" class="btn-icon"><i class="ri-facebook-fill fs-16"></i></BButton>
-                                                <BButton type="button" variant="danger" class="btn-icon ms-1"><i class="ri-google-fill fs-16"></i></BButton>
-                                                <BButton type="button" variant="dark" class="btn-icon ms-1"><i class="ri-github-fill fs-16"></i></BButton>
-                                                <BButton type="button" variant="info" class="btn-icon ms-1"><i class="ri-twitter-fill fs-16"></i></BButton>
+                                                <h5 class="text-primary">Accedi a SicurezzaChiara</h5>
+                                                <p class="text-muted">Inserisci le credenziali per accedere al tuo workspace operativo.</p>
+                                            </div>
+
+                                            <div v-if="status" class="alert alert-success text-success mt-4">
+                                                {{ status }}
+                                            </div>
+
+                                            <div class="mt-4">
+                                                <form @submit.prevent="submit">
+                                                    <div class="mb-3">
+                                                        <InputLabel for="email" value="Email" />
+                                                        <TextInput id="email" v-model="form.email" type="email" class="form-control" autofocus placeholder="Inserisci email" autocomplete="email" required :class="{ 'is-invalid': form.errors.email }" />
+                                                        <InputError :message="form.errors.email" />
+                                                    </div>
+
+                                                    <div class="mb-3">
+                                                        <div class="float-end">
+                                                            <Link v-if="canResetPassword" :href="route('password.request')" class="text-muted">Password dimenticata?</Link>
+                                                        </div>
+                                                        <InputLabel for="password" value="Password" />
+                                                        <div class="position-relative auth-pass-inputgroup mb-3">
+                                                            <input :type="togglePassword ? 'text' : 'password'" class="form-control pe-5" placeholder="Inserisci password" id="password-input" v-model="form.password" autocomplete="password" required :class="{ 'is-invalid': form.errors.password }">
+                                                            <BButton variant="link" class="position-absolute end-0 top-0 text-decoration-none text-muted" type="button" id="password-addon" @click="togglePassword = !togglePassword">
+                                                                <i class="ri-eye-fill align-middle"></i>
+                                                            </BButton>
+                                                            <InputError :message="form.errors.password" />
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="form-check">
+                                                        <Checkbox v-model:checked="form.remember" name="remember" class="form-check-input" id="auth-remember-check" />
+                                                        <label class="form-check-label" for="auth-remember-check">Ricordami</label>
+                                                    </div>
+
+                                                    <div class="mt-4">
+                                                        <BButton variant="success" class="w-100" type="submit" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">Accedi</BButton>
+                                                    </div>
+
+                                                    <p class="sc-login-access-note text-muted text-center mb-0 mt-3">
+                                                        Accesso riservato ai consulenti e agli utenti autorizzati.
+                                                    </p>
+                                                </form>
                                             </div>
                                         </div>
-                                    </form>
-                                </div>
-                            </BCardBody>
+                                    </BCardBody>
+                                </BCol>
+                            </BRow>
                         </BCard>
-
-                        <div class="mt-4 text-center">
-                            <p class="mb-0">Don't have an account ?
-                                <Link :href="route('register')" class="fw-semibold text-primary text-decoration-underline"> Signup </Link>
-                            </p>
-                        </div>
-
                     </BCol>
                 </BRow>
             </BContainer>
@@ -143,7 +149,7 @@ export default {
                 <BRow>
                     <BCol lg="12">
                         <div class="text-center">
-                            <p class="mb-0 text-muted">&copy; {{ new Date().getFullYear() }} Velzon. Crafted with <i class="mdi mdi-heart text-danger"></i> by Themesbrand</p>
+                            <p class="mb-0 text-muted">&copy; {{ new Date().getFullYear() }} SicurezzaChiara &middot; Piattaforma per il governo operativo della sicurezza aziendale</p>
                         </div>
                     </BCol>
                 </BRow>
@@ -151,3 +157,114 @@ export default {
         </footer>
     </div>
 </template>
+
+<style scoped>
+.sc-login-page {
+    background:
+        radial-gradient(circle at 12% 20%, rgba(15, 167, 111, 0.22), transparent 30%),
+        radial-gradient(circle at 84% 12%, rgba(66, 103, 178, 0.18), transparent 32%),
+        linear-gradient(135deg, #eef7f3 0%, #f8fbff 48%, #e9f2ef 100%);
+}
+
+.sc-login-content {
+    width: 100%;
+}
+
+.sc-login-card {
+    border: 0;
+    box-shadow: 0 18px 45px rgba(22, 35, 48, 0.14);
+}
+
+.sc-login-story {
+    position: relative;
+    overflow: hidden;
+    min-height: 520px;
+    background:
+        linear-gradient(140deg, rgba(9, 61, 55, 0.96), rgba(21, 109, 86, 0.94)),
+        radial-gradient(circle at 88% 20%, rgba(122, 210, 164, 0.24), transparent 34%);
+    color: #fff;
+}
+
+.sc-login-story::before,
+.sc-login-story::after {
+    position: absolute;
+    content: "";
+    border-radius: 999px;
+    pointer-events: none;
+}
+
+.sc-login-story::before {
+    right: -72px;
+    top: -72px;
+    width: 190px;
+    height: 190px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.sc-login-story::after {
+    left: -80px;
+    bottom: -96px;
+    width: 220px;
+    height: 220px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.sc-login-story-inner {
+    z-index: 1;
+}
+
+.sc-login-brand img {
+    filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.24));
+}
+
+.sc-login-brand-block {
+    margin-bottom: 3.5rem;
+}
+
+.sc-login-story-copy h2 {
+    max-width: 390px;
+    font-size: 1.55rem;
+    font-weight: 600;
+    line-height: 1.22;
+    color: #c7c9c8 !important;
+}
+
+.sc-login-story-copy p {
+    max-width: 500px;
+    color: rgba(255, 255, 255, 0.72) !important;
+}
+
+.sc-login-story-note {
+    max-width: 420px;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.sc-login-access-note {
+    font-size: 0.8125rem;
+}
+
+@media (max-width: 991.98px) {
+    .sc-login-story {
+        min-height: auto;
+    }
+
+    .sc-login-story-copy h2 {
+        font-size: 1.55rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .sc-login-page {
+        padding-top: 1.5rem !important;
+        padding-bottom: 1.5rem !important;
+    }
+
+    .sc-login-story-copy h2 {
+        font-size: 1.35rem;
+    }
+
+    .sc-login-points {
+        gap: 0.75rem !important;
+    }
+}
+</style>

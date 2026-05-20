@@ -538,6 +538,221 @@ File: Custom Css File
   }
 }
 
+.logo-sage,
+.logo-sm-sage,
+.logo-blue,
+.logo-sm-blue {
+  display: none;
+}
+
+:root[data-bs-theme="light"][data-shell-palette="institutional"] {
+  &[data-topbar="dark"] {
+    --vz-header-bg: #093d37;
+    --vz-header-border: #093d37;
+    --vz-header-item-color: #e6eeec;
+    --vz-header-item-bg: rgba(255, 255, 255, .08);
+    --vz-header-item-sub-color: #a8bdb8;
+    --vz-topbar-user-bg: rgba(6, 47, 43, .45);
+  }
+
+  &[data-sidebar="dark"] {
+    --vz-vertical-menu-bg: #093d37;
+    --vz-vertical-menu-border: #093d37;
+    --vz-vertical-menu-item-color: #c7d5d2;
+    --vz-vertical-menu-item-bg: rgba(255, 255, 255, .10);
+    --vz-vertical-menu-item-hover-color: #ffffff;
+    --vz-vertical-menu-item-active-color: #ffffff;
+    --vz-vertical-menu-item-active-bg: rgba(255, 255, 255, .14);
+    --vz-vertical-menu-sub-item-color: #a8bdb8;
+    --vz-vertical-menu-sub-item-hover-color: #ffffff;
+    --vz-vertical-menu-sub-item-active-color: #ffffff;
+    --vz-vertical-menu-title-color: #83a29c;
+    --vz-twocolumn-menu-iconview-bg: #062f2b;
+    --vz-topnav-bg: #062f2b;
+  }
+}
+
+:root[data-bs-theme="light"][data-shell-palette="deep-blue"] {
+  &[data-topbar="dark"] {
+    --vz-header-bg: #193a5a;
+    --vz-header-border: #193a5a;
+    --vz-header-item-color: #e8eff6;
+    --vz-header-item-bg: rgba(255, 255, 255, .08);
+    --vz-header-item-sub-color: #aebfce;
+    --vz-topbar-user-bg: rgba(18, 44, 67, .46);
+  }
+
+  &[data-sidebar="dark"] {
+    --vz-vertical-menu-bg: #193a5a;
+    --vz-vertical-menu-border: #193a5a;
+    --vz-vertical-menu-item-color: #c9d6e2;
+    --vz-vertical-menu-item-bg: rgba(255, 255, 255, .10);
+    --vz-vertical-menu-item-hover-color: #ffffff;
+    --vz-vertical-menu-item-active-color: #ffffff;
+    --vz-vertical-menu-item-active-bg: rgba(255, 255, 255, .14);
+    --vz-vertical-menu-sub-item-color: #aebfce;
+    --vz-vertical-menu-sub-item-hover-color: #ffffff;
+    --vz-vertical-menu-sub-item-active-color: #ffffff;
+    --vz-vertical-menu-title-color: #8fa8bb;
+    --vz-twocolumn-menu-iconview-bg: #122c43;
+    --vz-topnav-bg: #122c43;
+  }
+}
+
+:root[data-bs-theme="light"][data-shell-palette="deep-blue-soft"] {
+  &[data-topbar="dark"] {
+    --vz-header-bg: #dbe9f4;
+    --vz-header-border: #c4d8e8;
+    --vz-header-item-color: #24384a;
+    --vz-header-item-bg: rgba(36, 56, 74, .08);
+    --vz-header-item-sub-color: #5a7084;
+    --vz-topbar-user-bg: rgba(36, 56, 74, .08);
+  }
+
+  &[data-sidebar="dark"] {
+    --vz-vertical-menu-bg: #dbe9f4;
+    --vz-vertical-menu-border: #c4d8e8;
+    --vz-vertical-menu-item-color: #2f485d;
+    --vz-vertical-menu-item-bg: rgba(36, 56, 74, .10);
+    --vz-vertical-menu-item-hover-color: #183149;
+    --vz-vertical-menu-item-active-color: #183149;
+    --vz-vertical-menu-item-active-bg: rgba(36, 56, 74, .14);
+    --vz-vertical-menu-sub-item-color: #5a7084;
+    --vz-vertical-menu-sub-item-hover-color: #183149;
+    --vz-vertical-menu-sub-item-active-color: #183149;
+    --vz-vertical-menu-title-color: #73899c;
+    --vz-twocolumn-menu-iconview-bg: #c4d8e8;
+    --vz-topnav-bg: #c4d8e8;
+  }
+}
+
+:root[data-bs-theme="light"][data-shell-palette="sage"] {
+  .logo-sage,
+  .logo-sm-sage {
+    display: none;
+  }
+
+  &[data-topbar="dark"],
+  &[data-sidebar="dark"] {
+    .navbar-brand-box {
+      .logo-dark,
+      .logo-light {
+        display: none;
+      }
+
+      .logo-sage {
+        display: inline-block;
+      }
+    }
+  }
+
+  .twocolumn-iconview {
+    .logo-sm-default {
+      display: none;
+    }
+
+    .logo-sm-sage {
+      display: inline-block;
+    }
+  }
+}
+
+:root[data-bs-theme="light"][data-shell-palette="deep-blue-soft"] {
+  .logo-blue,
+  .logo-sm-blue {
+    display: none;
+  }
+
+  &[data-topbar="dark"],
+  &[data-sidebar="dark"] {
+    .navbar-brand-box {
+      .logo-dark,
+      .logo-light,
+      .logo-sage {
+        display: none;
+      }
+
+      .logo-blue {
+        display: inline-block;
+      }
+    }
+  }
+
+  .twocolumn-iconview {
+    .logo-sm-default,
+    .logo-sm-sage {
+      display: none;
+    }
+
+    .logo-sm-blue {
+      display: inline-block;
+    }
+  }
+}
+
+:root[data-bs-theme="light"][data-shell-palette="sage"] {
+  &[data-topbar="dark"] {
+    --vz-header-bg: #dcebe4;
+    --vz-header-border: #c8ddd3;
+    --vz-header-item-color: #243b35;
+    --vz-header-item-bg: rgba(36, 59, 53, .08);
+    --vz-header-item-sub-color: #58736a;
+    --vz-topbar-user-bg: rgba(36, 59, 53, .08);
+  }
+
+  &[data-sidebar="dark"] {
+    --vz-vertical-menu-bg: #dcebe4;
+    --vz-vertical-menu-border: #c8ddd3;
+    --vz-vertical-menu-item-color: #2e4a42;
+    --vz-vertical-menu-item-bg: rgba(36, 59, 53, .10);
+    --vz-vertical-menu-item-hover-color: #17332c;
+    --vz-vertical-menu-item-active-color: #17332c;
+    --vz-vertical-menu-item-active-bg: rgba(36, 59, 53, .14);
+    --vz-vertical-menu-sub-item-color: #58736a;
+    --vz-vertical-menu-sub-item-hover-color: #17332c;
+    --vz-vertical-menu-sub-item-active-color: #17332c;
+    --vz-vertical-menu-title-color: #6f8a80;
+    --vz-twocolumn-menu-iconview-bg: #c8ddd3;
+    --vz-topnav-bg: #c8ddd3;
+  }
+}
+
+:root[data-ui-density="compact"] {
+  --sc-card-spacer-y: .875rem;
+  --sc-card-spacer-x: .875rem;
+  --sc-control-spacer-y: .35rem;
+  --sc-control-spacer-x: .65rem;
+
+  .card-header {
+    padding-top: .75rem;
+    padding-bottom: .75rem;
+  }
+
+  .card-body {
+    padding: var(--sc-card-spacer-y) var(--sc-card-spacer-x);
+  }
+
+  .table > :not(caption) > * > * {
+    padding-top: .55rem;
+    padding-bottom: .55rem;
+  }
+
+  .btn:not(.btn-icon) {
+    padding-top: var(--sc-control-spacer-y);
+    padding-bottom: var(--sc-control-spacer-y);
+  }
+
+  .form-control,
+  .form-select {
+    padding-top: var(--sc-control-spacer-y);
+    padding-bottom: var(--sc-control-spacer-y);
+  }
+
+  .page-content {
+    padding-bottom: 1.5rem;
+  }
+}
+
 // modal
 .v-modal-custom {
   .modal-dialog {

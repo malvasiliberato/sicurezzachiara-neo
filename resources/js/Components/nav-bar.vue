@@ -1,5 +1,5 @@
 <script setup>
-import { layoutMethods } from "@/state/helpers";
+import { layoutComputed, layoutMethods } from "@/state/helpers";
 import { Link, router } from '@inertiajs/vue3';
 const logout = () => {
   router.post(route('logout'));
@@ -192,7 +192,7 @@ export default {
 
       //For collapse vertical menu
 
-      if (visiblilityType === "show" && (layoutType === "vertical" || layoutType === "semibox")) {
+      if (visiblilityType === "show" && layoutType === "vertical") {
         if (windowSize < 1025 && windowSize > 767) {
           document.body.classList.remove("vertical-sidebar-enable");
           document.documentElement.getAttribute("data-sidebar-size") == "sm" ?
@@ -269,6 +269,15 @@ export default {
       this.changeMode({
         mode: mode,
       });
+      this.changeTopbar({
+        topbar: "dark",
+      });
+      this.changeSidebarColor({
+        sidebarColor: "dark",
+      });
+    },
+    openThemeCustomizer() {
+      window.dispatchEvent(new CustomEvent("sicurezzachiara:open-theme-customizer"));
     },
     removeItem(cartItem) {
       this.cartItems = this.cartItems.filter(item => item.id !== cartItem.id)
@@ -277,6 +286,13 @@ export default {
   },
 
   computed: {
+    ...layoutComputed,
+    preferredHomeHref() {
+      return {
+        dashboard: route('dashboard'),
+        method: route('sicurezzachiara.method'),
+      }[this.homePage] || route('companies.index');
+    },
     calculateTotalPrice() {
       return this.cartItems.reduce((total, item) => total + parseFloat(item.itemPrice), 0).toFixed(2);
     },
@@ -299,7 +315,6 @@ export default {
     if (document.getElementById("topnav-hamburger-icon"))
       document.getElementById("topnav-hamburger-icon").addEventListener("click", this.toggleHamburgerMenu);
 
-    this.isCustomDropdown();
   },
 };
 </script>
@@ -311,21 +326,37 @@ export default {
         <div class="d-flex">
           <!-- LOGO -->
           <div class="navbar-brand-box horizontal-logo">
-            <Link href="/" class="logo logo-dark">
+            <Link :href="preferredHomeHref" class="logo logo-dark">
               <span class="logo-sm">
-                <img src="@assets/images/logo-sm.png" alt="" height="22" />
+                <img src="@assets/images/logo-sm.png" alt="" height="40" />
               </span>
               <span class="logo-lg">
-                <img src="@assets/images/logo-dark.png" alt="" height="17" />
+                <img src="@assets/images/logo-dark.png" alt="" height="25" />
               </span>
             </Link>
 
-            <Link href="/" class="logo logo-light">
+            <Link :href="preferredHomeHref" class="logo logo-light">
               <span class="logo-sm">
-                <img src="@assets/images/logo-sm.png" alt="" height="22" />
+                <img src="@assets/images/logo-sm-1.png" alt="" height="40" />
               </span>
               <span class="logo-lg">
-                <img src="@assets/images/logo-light.png" alt="" height="17" />
+                <img src="@assets/images/logo-light.png" alt="" height="40" />
+              </span>
+            </Link>
+            <Link :href="preferredHomeHref" class="logo logo-sage">
+              <span class="logo-sm">
+                <img src="@assets/images/logo-sm-sage.png" alt="" height="40" />
+              </span>
+              <span class="logo-lg">
+                <img src="@assets/images/logo-sage.png" alt="" height="40" />
+              </span>
+            </Link>
+            <Link :href="preferredHomeHref" class="logo logo-blue">
+              <span class="logo-sm">
+                <img src="@assets/images/logo-sm-blue.png" alt="" height="40" />
+              </span>
+              <span class="logo-lg">
+                <img src="@assets/images/logo-blue.png" alt="" height="40" />
               </span>
             </Link>
           </div>
@@ -340,7 +371,7 @@ export default {
           </button>
 
           <!-- App Search-->
-          <form class="app-search d-none d-md-block">
+          <form v-if="false" class="app-search d-none d-md-block">
             <div class="position-relative">
               <input type="text" class="form-control" placeholder="Search..." autocomplete="off" id="search-options"
                 value="" />
@@ -423,7 +454,7 @@ export default {
         </div>
 
         <div class="d-flex align-items-center">
-          <BDropdown class="dropdown d-md-none topbar-head-dropdown header-item" variant="ghost-secondary" dropstart
+          <BDropdown v-if="false" class="dropdown d-md-none topbar-head-dropdown header-item" variant="ghost-secondary" dropstart
             :offset="{ alignmentAxis: 55, crossAxis: 15, mainAxis: 0 }"
             toggle-class="btn-icon btn-topbar rounded-circle arrow-none"
             menu-class="dropdown-menu-lg dropdown-menu-end p-0">
@@ -444,7 +475,7 @@ export default {
             </BDropdownItem>
           </BDropdown>
 
-          <BDropdown class="dropdown" variant="ghost-secondary" dropstart
+          <BDropdown v-if="false" class="dropdown" variant="ghost-secondary" dropstart
             :offset="{ alignmentAxis: 55, crossAxis: 15, mainAxis: -50 }"
             toggle-class="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle arrow-none"
             menu-class="dropdown-menu-end">
@@ -459,7 +490,7 @@ export default {
             </BLink>
           </BDropdown>
 
-          <BDropdown class="dropdown" variant="ghost-secondary" dropstart
+          <BDropdown v-if="false" class="dropdown" variant="ghost-secondary" dropstart
             :offset="{ alignmentAxis: 57, crossAxis: 0, mainAxis: -42 }"
             toggle-class="btn-icon btn-topbar rounded-circle mode-layout ms-1 arrow-none"
             menu-class="p-0 dropdown-menu-end">
@@ -525,7 +556,7 @@ export default {
             </div>
           </BDropdown>
 
-          <BDropdown variant="ghost-secondary" dropstart :offset="{ alignmentAxis: 57, crossAxis: 0, mainAxis: -42 }"
+          <BDropdown v-if="false" variant="ghost-secondary" dropstart :offset="{ alignmentAxis: 57, crossAxis: 0, mainAxis: -42 }"
             class="ms-1 dropdown" toggle-class="btn-icon btn-topbar rounded-circle mode-layout arrow-none"
             menu-class="dropdown-menu-xl dropdown-menu-end p-0" text="Manual close (auto-close=false)"
             auto-close="outside">
@@ -613,7 +644,7 @@ export default {
             </BButton>
           </div>
 
-          <BDropdown variant="ghost-dark" dropstart class="ms-1 dropdown"
+          <BDropdown v-if="false" variant="ghost-dark" dropstart class="ms-1 dropdown"
             :offset="{ alignmentAxis: 57, crossAxis: 0, mainAxis: -42 }"
             toggle-class="btn-icon btn-topbar rounded-circle arrow-none" id="page-header-notifications-dropdown"
             menu-class="dropdown-menu-lg dropdown-menu-end p-0" auto-close="outside">
@@ -889,7 +920,6 @@ export default {
                 <img v-if="$page.props.jetstream.managesProfilePhotos" class="rounded-circle header-profile-user" :src="$page.props.auth.user.profile_photo_url" :alt="$page.props.auth.user.name">
                 <span class="text-start ms-xl-2">
                   <span class="d-none d-xl-inline-block ms-1 fw-medium user-name-text">{{ $page.props.auth.user.name }}</span>
-                  <span class="d-none d-xl-block ms-1 fs-12 user-name-sub-text">Founder</span>
                 </span>
               </span>
             </template>
@@ -897,32 +927,11 @@ export default {
             <Link class="dropdown-item" :href="route('profile.show')"><i class="mdi mdi-account-circle text-muted fs-16 align-middle me-1"></i>
             <span class="align-middle">Profile</span>
             </Link>
-            <Link class="dropdown-item" v-if="$page.props.jetstream.hasApiFeatures" :href="route('api-tokens.index')"><i class="mdi mdi-key-variant text-muted fs-16 align-middle me-1"></i>
-            <span class="align-middle"> API Tokens</span>
-            </Link>
-            <div class="dropdown-divider"></div>
-            <Link class="dropdown-item" href="/chat">
-            <i class=" mdi mdi-message-text-outline text-muted fs-16 align-middle me-1"></i>
-            <span class="align-middle"> Messages</span>
-            </Link>
-            <Link class="dropdown-item" href="/apps/tasks-kanban">
-            <i class="mdi mdi-calendar-check-outline text-muted fs-16 align-middle me-1"></i>
-            <span class="align-middle"> Taskboard</span>
-            </Link>
-            <Link class="dropdown-item" href="/pages/faqs"><i class="mdi mdi-lifebuoy text-muted fs-16 align-middle me-1"></i>
-            <span class="align-middle"> Help</span>
-            </Link>
-            <div class="dropdown-divider"></div>
-            <Link class="dropdown-item" href="/pages/profile"><i class="mdi mdi-wallet text-muted fs-16 align-middle me-1"></i>
-            <span class="align-middle"> Balance : <b>$5971.67</b></span>
-            </Link>
-            <Link class="dropdown-item" href="/pages/profile-setting">
-            <BBadge variant="success-subtle" class="bg-success-subtle text-success mt-1 float-end">New</BBadge><i class="mdi mdi-cog-outline text-muted fs-16 align-middle me-1"></i>
+            <button type="button" class="dropdown-item" @click="openThemeCustomizer">
+            <i class="mdi mdi-cog-outline text-muted fs-16 align-middle me-1"></i>
             <span class="align-middle"> Settings</span>
-            </Link>
-            <Link class="dropdown-item" href="/auth/lockscreen-basic"><i class="mdi mdi-lock text-muted fs-16 align-middle me-1"></i>
-            <span class="align-middle"> Lock screen</span>
-            </Link>
+            </button>
+            <div class="dropdown-divider"></div>
 
             <!-- Authentication -->
             <form method="POST" @submit.prevent="logout" class="dropdown-item">

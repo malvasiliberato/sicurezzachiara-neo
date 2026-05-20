@@ -222,7 +222,7 @@ const equipmentSubmitLabel = computed(() => (editingEquipmentId.value ? "Aggiorn
 const workerOffcanvasTitle = computed(() => (editingWorkerId.value ? "Modifica lavoratore" : "Nuovo lavoratore"));
 const workerSubmitLabel = computed(() => (editingWorkerId.value ? "Aggiorna lavoratore" : "Salva lavoratore"));
 const companyIntro = computed(
-  () => props.form?.industry?.trim() || "Configura i dati minimi dell'azienda e completa il contesto operativo quando serve.",
+  () => props.form?.industry?.trim() || "Configura i dati minimi dell'azienda e completa il contesto che alimenta il profilo rischio.",
 );
 
 const resetSiteEditor = () => {
@@ -555,6 +555,9 @@ watch(
           <span class="badge bg-primary-subtle text-primary text-uppercase mb-3">Configura azienda</span>
           <h3 class="mb-2">{{ company ? company.name : "Nuova azienda" }}</h3>
           <p class="text-muted mb-0">{{ companyIntro }}</p>
+          <p class="text-muted mb-0 fs-13 mt-2">
+            Sedi, luoghi, macchinari e lavoratori non sono semplici archivi: costruiscono il contesto da cui SicurezzaChiara propone rischi e misure.
+          </p>
         </div>
         <Link :href="route('companies.index')" class="btn btn-soft-secondary">Torna ad aziende</Link>
       </div>
@@ -564,7 +567,7 @@ watch(
           <div class="border rounded-3 p-4">
             <div class="mb-3">
               <h5 class="mb-1">Anagrafica minima</h5>
-              <p class="text-muted mb-0">Per iniziare basta il nome dell'azienda. Gli altri dati servono a completare il contesto.</p>
+              <p class="text-muted mb-0">Per iniziare basta il nome dell'azienda. Gli altri dati aiutano a rendere piu' affidabile la prima lettura del rischio.</p>
             </div>
 
             <form @submit.prevent="emit('submit-company')">
@@ -585,7 +588,7 @@ watch(
             <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap mb-3">
               <div>
                 <h5 class="mb-1">Sedi operative</h5>
-                <p class="text-muted mb-0">Le sedi indicano dove si svolge il lavoro. Da qui collegherai luoghi, macchinari e lavoratori.</p>
+                <p class="text-muted mb-0">Le sedi indicano dove si svolge il lavoro. Da qui collegherai luoghi, macchinari e lavoratori che alimentano il profilo rischio.</p>
               </div>
               <BButton v-if="company" variant="soft-secondary" @click="openCreateSiteOffcanvas">
                 {{ sites.length > 0 ? "Aggiungi sede" : "Nuova sede" }}
@@ -650,7 +653,7 @@ watch(
             <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap mb-3">
               <div>
                 <h5 class="mb-1">Luoghi di lavoro</h5>
-                <p class="text-muted mb-0">I luoghi rappresentano ambienti che possono generare rischi.</p>
+                <p class="text-muted mb-0">I luoghi rappresentano ambienti o aree operative che possono generare o richiamare rischi.</p>
               </div>
               <BButton v-if="company" variant="soft-secondary" :disabled="sites.length === 0" @click="openCreateWorkplaceOffcanvas">Nuovo luogo</BButton>
             </div>
@@ -721,7 +724,7 @@ watch(
             <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap mb-3">
               <div>
                 <h5 class="mb-1">Macchinari e attrezzature</h5>
-                <p class="text-muted mb-0">I macchinari e le attrezzature completano il contesto da cui nasce il profilo rischio.</p>
+                <p class="text-muted mb-0">Macchinari e attrezzature completano il contesto tecnico da cui il sistema deduce rischi e misure attese.</p>
               </div>
               <BButton v-if="company" variant="soft-secondary" @click="openCreateEquipmentOffcanvas">Nuovo macchinario</BButton>
             </div>
@@ -786,7 +789,7 @@ watch(
             <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap mb-3">
               <div>
                 <h5 class="mb-1">Lavoratori e mansioni</h5>
-                <p class="text-muted mb-0">Assegna le mansioni ai lavoratori: da qui SicurezzaChiara propone rischi, DPI, corsi e visite.</p>
+                <p class="text-muted mb-0">Assegna le mansioni ai lavoratori: da qui SicurezzaChiara propone rischi, DPI, corsi, visite e misure operative.</p>
               </div>
               <BButton v-if="company" variant="soft-secondary" @click="openCreateWorkerOffcanvas">Nuovo lavoratore</BButton>
             </div>

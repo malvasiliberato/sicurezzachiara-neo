@@ -118,7 +118,7 @@ const statusBadge = (status) => {
                     <span class="badge bg-soft-primary text-primary">{{ catalog.count }}</span>
                   </div>
                   <div class="hstack gap-2 flex-wrap mb-3">
-                    <span class="badge bg-light text-body">{{ catalog.tenantCount }} tenant-level</span>
+                    <span class="badge bg-light text-body">{{ catalog.tenantCount }} personalizzati</span>
                   </div>
                   <div class="hstack gap-2 flex-wrap">
                     <Link :href="catalog.route" class="btn btn-primary btn-sm">Apri</Link>

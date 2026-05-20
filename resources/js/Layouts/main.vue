@@ -25,7 +25,7 @@ export default {
 
 <template>
     <div>
-        <Vertical v-if="layoutType === 'vertical' || layoutType === 'semibox'" :layout="layoutType">
+        <Vertical v-if="layoutType === 'vertical'" :layout="layoutType">
             <slot />
         </Vertical>
 

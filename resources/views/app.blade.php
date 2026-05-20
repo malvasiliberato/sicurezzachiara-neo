@@ -4,17 +4,17 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title inertia>Velzon - Inertia + Vue & Laravel Admin & Dashboard Template</title>
+    <title inertia>SicurezzaChiara</title>
     <meta name="description"
-        content="Velzon is a feature-rich admin and dashboard template built with Inertia.js, Vue.js, and Laravel, designed to simplify web application development.">
+        content="SicurezzaChiara aiuta i consulenti a configurare aziende, leggere il profilo rischio e governare misure, scadenze e DVR light.">
     <meta name="keywords"
-        content="Velzon, Inertia.js, Vue.js, Laravel, admin template, dashboard template, web application">
-    <meta name="author" content="Themesbrand">
+        content="SicurezzaChiara, sicurezza sul lavoro, rischio aziendale, DPI, formazione, visite mediche, DVR light">
+    <meta name="author" content="SicurezzaChiara">
 
     <!-- Social Media Meta Tags -->
-    <meta property="og:title" content="Velzon - Inertia + Vue & Laravel Admin & Dashboard Template">
+    <meta property="og:title" content="SicurezzaChiara">
     <meta property="og:description"
-        content="Simplify web application development with Velzon, a feature-rich admin and dashboard template built with Inertia.js, Vue.js, and Laravel.">
+        content="Piattaforma per il governo continuo del rischio aziendale.">
     <meta property="og:image" content="URL to the template's logo or featured image">
     <meta property="og:url" content="URL to the template's webpage">
     <meta name="twitter:card" content="summary_large_image">

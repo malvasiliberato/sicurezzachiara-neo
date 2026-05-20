@@ -22,6 +22,12 @@ export default {
   },
   computed: {
     ...layoutComputed,
+    preferredHomeHref() {
+      return {
+        dashboard: route('dashboard'),
+        method: route('sicurezzachiara.method'),
+      }[this.homePage] || route('companies.index');
+    },
   },
   created: () => {
     document.body.removeAttribute("data-layout", "horizontal");
@@ -89,21 +95,37 @@ export default {
         <!-- LOGO -->
         <div class="navbar-brand-box">
           <!-- Dark Logo-->
-          <Link href="/" class="logo logo-dark">
+          <Link :href="preferredHomeHref" class="logo logo-dark">
             <span class="logo-sm">
-              <img src="@assets/images/logo-sm.png" alt="" height="22" />
+              <img src="@assets/images/logo-sm.png" alt="" height="40" />
             </span>
             <span class="logo-lg">
-              <img src="@assets/images/logo-dark.png" alt="" height="17" />
+              <img src="@assets/images/logo-dark.png" alt="" height="25" />
             </span>
           </Link>
           <!-- Light Logo-->
-          <Link href="/" class="logo logo-light">
+          <Link :href="preferredHomeHref" class="logo logo-light">
             <span class="logo-sm">
-              <img src="@assets/images/logo-sm.png" alt="" height="22" />
+              <img src="@assets/images/logo-sm-1.png" alt="" height="40" />
             </span>
             <span class="logo-lg">
-              <img src="@assets/images/logo-light.png" alt="" height="17" />
+              <img src="@assets/images/logo-light.png" alt="" height="40" />
+            </span>
+          </Link>
+          <Link :href="preferredHomeHref" class="logo logo-sage">
+            <span class="logo-sm">
+              <img src="@assets/images/logo-sm-sage.png" alt="" height="40" />
+            </span>
+            <span class="logo-lg">
+              <img src="@assets/images/logo-sage.png" alt="" height="40" />
+            </span>
+          </Link>
+          <Link :href="preferredHomeHref" class="logo logo-blue">
+            <span class="logo-sm">
+              <img src="@assets/images/logo-sm-blue.png" alt="" height="40" />
+            </span>
+            <span class="logo-lg">
+              <img src="@assets/images/logo-blue.png" alt="" height="40" />
             </span>
           </Link>
           <button type="button" class="btn btn-sm p-0 fs-20 header-item float-end btn-vertical-sm-hover"

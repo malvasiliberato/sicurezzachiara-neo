@@ -19,6 +19,26 @@ import 'aos/dist/aos.css';
 import store from "./state/store";
 import i18n from './i18n'
 
+const savedThemePreferences = (() => {
+    try {
+        return JSON.parse(localStorage.getItem('sicurezzachiara.theme.current') || '{}');
+    } catch (error) {
+        localStorage.removeItem('sicurezzachiara.theme.current');
+        return {};
+    }
+})();
+
+const uiDensity = ['comfortable', 'compact'].includes(savedThemePreferences.uiDensity)
+    ? savedThemePreferences.uiDensity
+    : 'comfortable';
+
+const homePage = ['companies', 'dashboard', 'method'].includes(savedThemePreferences.homePage)
+    ? savedThemePreferences.homePage
+    : 'companies';
+
+document.documentElement.setAttribute('data-ui-density', uiDensity);
+document.documentElement.setAttribute('data-home-page', homePage);
+
 AOS.init({
     easing: 'ease-out-back',
     duration: 1000

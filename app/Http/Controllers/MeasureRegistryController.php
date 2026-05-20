@@ -605,8 +605,8 @@ class MeasureRegistryController extends Controller
             'activeCompanyId' => $companyId,
             'activeOwnerUserId' => $ownerUserId,
             'copy' => [
-                'workspaceTitle' => 'Registri famiglia misure',
-                'workspaceHelper' => 'Workspace unico delle misure collegate ai rischi. Le tab DPI, formazione e visite mediche filtrano la stessa base operativa per famiglia.',
+                'workspaceTitle' => 'Misure per famiglia',
+                'workspaceHelper' => 'Qui trovi le azioni nate dal profilo rischio: DPI, formazione, visite mediche e misure operative. Le tab filtrano la stessa base operativa per famiglia.',
                 'familyColumnLabel' => 'Famiglia',
             ],
             'workspaceContext' => $workspaceContext,

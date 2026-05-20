@@ -76,7 +76,7 @@ class VelzonRoutesController extends Controller
                 'route' => route('risk-catalog.index'),
                 'createRoute' => route('risk-catalog.create'),
                 'label' => 'Rischi',
-                'description' => 'Normalizza i rischi che SicurezzaChiara puo\' dedurre da mansioni, macchinari e luoghi.',
+                'description' => 'Raccoglie i rischi che SicurezzaChiara puo\' proporre a partire da mansioni, macchinari e luoghi.',
             ],
             'jobRoles' => [
                 'count' => (clone $visibleJobRoles)->count(),
@@ -84,7 +84,7 @@ class VelzonRoutesController extends Controller
                 'route' => route('job-roles.index'),
                 'createRoute' => route('job-roles.create'),
                 'label' => 'Mansioni',
-                'description' => 'Definisce le mansioni tipo riusabili che alimentano il profilo rischio dei lavoratori.',
+                'description' => 'Definisce le mansioni standard o personalizzate che alimentano il profilo rischio dei lavoratori.',
             ],
             'equipmentTypes' => [
                 'count' => (clone $visibleEquipmentTypes)->count(),
@@ -100,7 +100,7 @@ class VelzonRoutesController extends Controller
                 'route' => route('workplace-types.index'),
                 'createRoute' => route('workplace-types.create'),
                 'label' => 'Tipologie luogo',
-                'description' => 'Prepara i luoghi tipo da cui SicurezzaChiara deduce contesto, esposizioni e rischi attesi.',
+                'description' => 'Prepara i luoghi tipo da cui SicurezzaChiara legge contesto, esposizioni e rischi attesi.',
             ],
         ];
 
@@ -109,7 +109,7 @@ class VelzonRoutesController extends Controller
                 'label' => 'Mansione -> rischi',
                 'count' => RiskSourceLink::query()->where('sourceable_type', JobRole::class)->count(),
                 'status' => 'Operativo',
-                'detail' => 'I collegamenti si governano oggi dal dettaglio del rischio.',
+                'detail' => 'I collegamenti si governano oggi dal dettaglio del rischio e restano verificabili dal consulente.',
             ],
             [
                 'label' => 'Macchinario -> rischi',
@@ -131,7 +131,7 @@ class VelzonRoutesController extends Controller
                     ->filter(fn (RiskCatalogItem $risk) => filled($risk->expected_measures))
                     ->count(),
                 'status' => 'Nel rischio',
-                'detail' => 'Le misure attese si configurano oggi dentro il rischio, non in un catalogo autonomo.',
+                'detail' => 'Le misure attese si configurano oggi dentro il rischio: DPI, formazione, visite e misure operative.',
             ],
         ];
 
@@ -143,12 +143,12 @@ class VelzonRoutesController extends Controller
             'methodSummary' => $summary,
             'linksSummary' => $linksSummary,
             'methodJourney' => [
-                'title' => 'Come SicurezzaChiara costruisce il metodo',
+                'title' => 'Formula sintetica del metodo',
                 'steps' => [
-                    'Definisci o rifinisci i cataloghi riusabili.',
-                    'Aggancia i rischi alle sorgenti: mansioni, macchinari e luoghi.',
-                    'Completa dentro il rischio le misure attese piu\' utili.',
-                    'Applica poi il metodo alle aziende reali dal workspace operativo.',
+                    'Rischi -> misure.',
+                    'Mansioni, luoghi e macchinari -> rischi.',
+                    'Lavoratori -> contesto operativo.',
+                    'Azienda -> profilo rischio governabile.',
                 ],
             ],
             'operationalBoundary' => [

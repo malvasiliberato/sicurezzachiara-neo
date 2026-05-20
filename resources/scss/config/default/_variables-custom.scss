@@ -33,21 +33,31 @@ $vertical-menu-title-color:                       #919da9;
 $vertical-menu-box-shadow:                        0 2px 4px rgba(15,34,58,0.12);
 $vertical-menu-dropdown-box-shadow:               0 2px 4px rgba(15, 34, 58, 0.12);
 
+// SicurezzaChiara dark navigation palette
+$sicurezzachiara-nav-primary-dark:                #093d37;
+$sicurezzachiara-nav-primary-darker:              #062f2b;
+$sicurezzachiara-nav-primary-soft:                rgba($white, .14);
+$sicurezzachiara-nav-primary-soft-hover:          rgba($white, .10);
+$sicurezzachiara-nav-text:                        #edf7f3;
+$sicurezzachiara-nav-text-muted:                  #b7cbc4;
+$sicurezzachiara-nav-text-soft:                   #92aaa2;
+$sicurezzachiara-nav-border:                      rgba($white, .12);
+
 //sidebar dark 
-$dark-vertical-menu-bg:                           $primary;
-$dark-vertical-menu-border:                       $primary;
-$dark-vertical-menu-item-color:                   #abb9e8;
-$dark-vertical-menu-item-bg:                      rgba($white, .15);
-$dark-vertical-menu-item-hover-color:             $white;
+$dark-vertical-menu-bg:                           $sicurezzachiara-nav-primary-dark;
+$dark-vertical-menu-border:                       $sicurezzachiara-nav-primary-darker;
+$dark-vertical-menu-item-color:                   $sicurezzachiara-nav-text-muted;
+$dark-vertical-menu-item-bg:                      $sicurezzachiara-nav-primary-soft;
+$dark-vertical-menu-item-hover-color:             $sicurezzachiara-nav-text;
 $dark-vertical-menu-item-active-color:            $white;
-$dark-vertical-menu-item-active-bg:               rgba($white, .15);
-$dark-vertical-menu-sub-item-color:               #abb9e8;
-$dark-vertical-menu-sub-item-hover-color:         $white;
+$dark-vertical-menu-item-active-bg:               $sicurezzachiara-nav-primary-soft;
+$dark-vertical-menu-sub-item-color:               $sicurezzachiara-nav-text-soft;
+$dark-vertical-menu-sub-item-hover-color:         $sicurezzachiara-nav-text;
 $dark-vertical-menu-sub-item-active-color:        $white;
-$dark-vertical-menu-title-color:                  #838fb9;
+$dark-vertical-menu-title-color:                  $sicurezzachiara-nav-text-soft;
 $dark-vertical-menu-box-shadow:                   0 2px 4px rgba(15,34,58,0.12);
 $dark-vertical-menu-dropdown-box-shadow:          0 2px 4px rgba(15,34,58,0.12);
-$dark-twocolumn-menu-iconview-bg:                 lighten($primary, 2%);
+$dark-twocolumn-menu-iconview-bg:                 $sicurezzachiara-nav-primary-darker;
 
 //sidebar gradient
 $vertical-menu-item-color-gradient:               rgba($white, .5);
@@ -98,14 +108,14 @@ $page-title-box-shadow:                           0 1px 2px rgba(56,65,74,0.15);
 $page-title-border:                               none;
 
 // Topbar - dark
-$dark-header-bg:                                  $primary;
-$dark-header-border:                              $primary;
-$dark-header-item-color:                          rgba($white, .85);
-$dark-header-item-bg:                             #495c99;
-$dark-header-item-sub-color:                      #b0c4d9; 
-$dark-topbar-user-bg:                             #52639c;
-$dark-topbar-search-bg:                           rgba($white, .05);
-$dark-topbar-search-color:                        $white;
+$dark-header-bg:                                  $sicurezzachiara-nav-primary-dark;
+$dark-header-border:                              $sicurezzachiara-nav-primary-darker;
+$dark-header-item-color:                          $sicurezzachiara-nav-text;
+$dark-header-item-bg:                             $sicurezzachiara-nav-primary-soft-hover;
+$dark-header-item-sub-color:                      $sicurezzachiara-nav-text-muted; 
+$dark-topbar-user-bg:                             $sicurezzachiara-nav-primary-soft-hover;
+$dark-topbar-search-bg:                           rgba(6, 47, 43, .45);
+$dark-topbar-search-color:                        $sicurezzachiara-nav-text;
 
 // Horizontal Menu
 $horizontal-menu-box-shadow:                      0 2px 4px rgba(15,34,58,0.12);

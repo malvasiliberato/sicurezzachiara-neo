@@ -179,7 +179,7 @@ const sourceOriginSummary = (profileItem) => {
 
 const riskContextLine = (profileItem) => {
   if (profileItem.is_manual) {
-    return "Aggiunto dal consulente. Non deriva automaticamente dai produttori di rischio configurati.";
+    return "Aggiunto dal consulente. Non deriva automaticamente dal contesto che genera rischio.";
   }
 
   if (profileItem.sources.length > 0) {
@@ -238,7 +238,7 @@ const profileReadiness = computed(() => ({
 const minimalSummaryCards = computed(() => [
   {
     key: "to-verify",
-    label: "Rischi da verificare",
+    label: "Rischi da confermare",
     icon: "ri-alarm-warning-line",
     value: props.summary.uncoveredRisks ?? props.summary.totalRisks ?? 0,
     helper: "Da confermare o presidiare",
@@ -246,7 +246,7 @@ const minimalSummaryCards = computed(() => [
   },
   {
     key: "missing",
-    label: "Presidi mancanti",
+    label: "Misure attese mancanti",
     icon: "ri-shield-line",
     value: props.summary.missingExpectedMeasures ?? 0,
     helper: "Misure da collegare",

@@ -34,7 +34,7 @@ const stateBadge = (company) => {
       label: "Da completare",
       icon: "ri-error-warning-line",
       class: "bg-warning-subtle text-warning",
-      detail: "Mancano ancora alcuni produttori di rischio: sedi, luoghi, macchinari o lavoratori.",
+      detail: "Mancano ancora elementi del contesto che genera rischio: sedi, luoghi, macchinari o lavoratori.",
     };
   }
 
@@ -280,13 +280,13 @@ defineProps({
                     </span>
                     <div class="min-w-0">
                       <div class="fw-semibold fs-3 lh-1 text-body mb-1">{{ summary.readyCompaniesCount }}</div>
-                      <div class="text-muted fs-12 lh-sm">Pronte per governance</div>
+                      <div class="text-muted fs-12 lh-sm">Pronte per profilo rischio</div>
                     </div>
                   </div>
                 </div>
                 <BTooltip
                   :target="portfolioKpiTooltipId('ready')"
-                  title="Aziende con contesto minimo completo."
+                  title="Aziende con contesto minimo completo per leggere il primo profilo rischio."
                 />
               </BCol>
               <BCol sm="6" xl="3">
@@ -307,7 +307,7 @@ defineProps({
                 </div>
                 <BTooltip
                   :target="portfolioKpiTooltipId('incomplete')"
-                  title="Aziende che richiedono ancora dati minimi o produttori di rischio."
+                  title="Aziende che richiedono ancora dati minimi o sorgenti di rischio."
                 />
               </BCol>
               <BCol sm="6" xl="3">
@@ -340,6 +340,9 @@ defineProps({
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
               <div>
                 <h4 class="card-title mb-1">Portfolio aziende</h4>
+                <p class="text-muted mb-0 fs-13">
+                  Scegli un'azienda per configurare il contesto reale, leggere il profilo rischio e governare misure, scadenze e DVR light.
+                </p>
               </div>
               <div class="d-flex flex-wrap align-items-center gap-2">
                 <div

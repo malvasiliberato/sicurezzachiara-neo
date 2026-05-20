@@ -1,14 +1,48 @@
+const savedThemePreferences = (() => {
+  try {
+    return JSON.parse(localStorage.getItem('sicurezzachiara.theme.current')) || {};
+  } catch (error) {
+    localStorage.removeItem('sicurezzachiara.theme.current');
+    return {};
+  }
+})();
+
+const normalizeLayoutType = (layoutType) => ['vertical', 'horizontal'].includes(layoutType)
+  ? layoutType
+  : 'vertical';
+
+const normalizeShellPalette = (shellPalette) => {
+  if (shellPalette === 'graphite') {
+    return 'sage';
+  }
+
+  return ['institutional', 'sage', 'deep-blue', 'deep-blue-soft'].includes(shellPalette)
+    ? shellPalette
+    : 'institutional';
+};
+
+const normalizeHomePage = (homePage) => ['companies', 'dashboard', 'method'].includes(homePage)
+  ? homePage
+  : 'companies';
+
+const normalizeUiDensity = (uiDensity) => ['comfortable', 'compact'].includes(uiDensity)
+  ? uiDensity
+  : 'comfortable';
+
 const state = {
-  layoutType: 'vertical',
+  layoutType: normalizeLayoutType(savedThemePreferences.layoutType),
   layoutWidth: 'fluid',
   sidebarSize: 'lg',
-  topbar: 'light',
-  mode: 'light',
+  topbar: 'dark',
+  mode: savedThemePreferences.mode || 'light',
+  shellPalette: normalizeShellPalette(savedThemePreferences.shellPalette),
+  homePage: normalizeHomePage(savedThemePreferences.homePage),
+  uiDensity: normalizeUiDensity(savedThemePreferences.uiDensity),
   position: 'fixed',
   sidebarView: 'default',
   sidebarColor: 'dark',
   sidebarImage: 'none',
-  preloader: 'disable',
+  preloader: savedThemePreferences.preloader || 'enable',
   visibility: 'show'
 };
 
@@ -27,6 +61,15 @@ const mutations = {
   },
   CHANGE_MODE(state, mode) {
     state.mode = mode;
+  },
+  CHANGE_SHELL_PALETTE(state, shellPalette) {
+    state.shellPalette = shellPalette;
+  },
+  CHANGE_HOME_PAGE(state, homePage) {
+    state.homePage = homePage;
+  },
+  CHANGE_UI_DENSITY(state, uiDensity) {
+    state.uiDensity = uiDensity;
   },
   CHANGE_POSITION(state, position) {
     state.position = position;
@@ -68,6 +111,18 @@ const actions = {
 
   changeMode({ commit }, { mode }) {
     commit('CHANGE_MODE', mode);
+  },
+
+  changeShellPalette({ commit }, { shellPalette }) {
+    commit('CHANGE_SHELL_PALETTE', shellPalette);
+  },
+
+  changeHomePage({ commit }, { homePage }) {
+    commit('CHANGE_HOME_PAGE', homePage);
+  },
+
+  changeUiDensity({ commit }, { uiDensity }) {
+    commit('CHANGE_UI_DENSITY', uiDensity);
   },
 
   changePosition({ commit }, { position }) {

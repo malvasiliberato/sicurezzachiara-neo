@@ -94,10 +94,22 @@ const activeWorkspaceTab = ref("anagrafica");
 
 const summaryCards = computed(() => ([
   { label: "Sorgenti rilevate", value: props.coreStarterPack.summary.sourceCount },
-  { label: "Sorgenti core", value: props.coreStarterPack.summary.coreSourceCount },
-  { label: "Rischi core suggeriti", value: props.coreStarterPack.summary.suggestedRisksCount },
-  { label: "Presidi attesi core", value: props.coreStarterPack.summary.expectedMeasuresCount },
+  { label: "Sorgenti standard", value: props.coreStarterPack.summary.coreSourceCount },
+  { label: "Rischi standard suggeriti", value: props.coreStarterPack.summary.suggestedRisksCount },
+  { label: "Presidi standard attesi", value: props.coreStarterPack.summary.expectedMeasuresCount },
 ]));
+
+const displayDomainCopy = (value, fallback = "Descrizione non disponibile.") => {
+  if (!value) {
+    return fallback;
+  }
+
+  return value
+    .replaceAll("tenant-level", "personalizzato")
+    .replaceAll("Tenant-level", "Personalizzato")
+    .replaceAll("core-level", "standard")
+    .replaceAll("Core-level", "Standard");
+};
 
 const profileDetails = computed(() => ([
   { label: "Codice fiscale", value: props.worker.tax_code || "Non indicato" },
@@ -360,7 +372,7 @@ const removeWorkplaceExposure = (exposure) => {
                   <BRow class="g-4">
                     <BCol xl="7">
                       <div v-if="coreStarterPack.families.length === 0" class="text-muted">
-                        Nessuna sorgente core ancora leggibile nel contesto del lavoratore.
+                        Nessuna sorgente standard ancora leggibile nel contesto del lavoratore.
                       </div>
                       <div v-else class="table-responsive">
                         <table class="table align-middle table-nowrap mb-0">
@@ -369,7 +381,7 @@ const removeWorkplaceExposure = (exposure) => {
                               <th>Famiglia</th>
                               <th>Sorgente</th>
                               <th>Origine</th>
-                              <th>Rischi core suggeriti</th>
+                              <th>Rischi standard suggeriti</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -378,11 +390,11 @@ const removeWorkplaceExposure = (exposure) => {
                                 <td>{{ family.label }}</td>
                                 <td>
                                   <div class="fw-semibold">{{ item.name }}</div>
-                                  <div class="text-muted fs-13">{{ item.description || "Descrizione non disponibile." }}</div>
+                                  <div class="text-muted fs-13">{{ displayDomainCopy(item.description) }}</div>
                                 </td>
                                 <td>
                                   <span class="badge" :class="sourceBadge[item.source] || 'bg-light text-body'">
-                                    {{ item.source === "core" ? "Core" : "Tenant" }}
+                                    {{ item.source === "core" ? "Standard" : "Personalizzato" }}
                                   </span>
                                 </td>
                                 <td>
@@ -391,7 +403,7 @@ const removeWorkplaceExposure = (exposure) => {
                                       {{ risk.name }}
                                     </span>
                                   </div>
-                                  <span v-else class="text-muted fs-13">Nessun mapping core esplicito</span>
+                                  <span v-else class="text-muted fs-13">Nessun collegamento standard esplicito</span>
                                 </td>
                               </tr>
                             </template>
@@ -401,9 +413,9 @@ const removeWorkplaceExposure = (exposure) => {
                     </BCol>
                     <BCol xl="5">
                       <div class="border rounded-3 p-3 h-100 bg-light-subtle">
-                        <h6 class="mb-3">Rischi core suggeriti dal contesto</h6>
+                        <h6 class="mb-3">Rischi standard suggeriti dal contesto</h6>
                         <div v-if="coreStarterPack.suggestedRisks.length === 0" class="text-muted">
-                          Nessun rischio core ancora leggibile dal contesto del lavoratore.
+                          Nessun rischio standard ancora leggibile dal contesto del lavoratore.
                         </div>
                         <div v-else class="vstack gap-3">
                           <div v-for="risk in coreStarterPack.suggestedRisks.slice(0, 6)" :key="risk.id" class="border rounded p-3 bg-white">
@@ -417,7 +429,7 @@ const removeWorkplaceExposure = (exposure) => {
                               </span>
                             </div>
                             <div class="text-muted fs-13 mt-2">
-                              {{ risk.expected_measures_count }} presidi attesi | {{ risk.trigger_count }} trigger sorgente
+                              {{ risk.expected_measures_count }} presidi attesi | {{ risk.trigger_count }} collegamenti di origine
                             </div>
                           </div>
                         </div>
@@ -704,8 +716,8 @@ const removeWorkplaceExposure = (exposure) => {
                       <div class="text-muted fs-13">{{ assignment.notes || "Nessuna nota" }}</div>
                     </td>
                     <td>
-                      <span v-if="assignment.job_role?.source === 'tenant'" class="badge bg-primary-subtle text-primary">Tenant</span>
-                      <span v-else class="badge bg-light text-body">Core</span>
+                      <span v-if="assignment.job_role?.source === 'tenant'" class="badge bg-primary-subtle text-primary">Personalizzata</span>
+                      <span v-else class="badge bg-light text-body">Standard</span>
                     </td>
                     <td>
                       <span v-if="assignment.is_primary" class="badge bg-success-subtle text-success">Prevalente</span>
@@ -739,7 +751,7 @@ const removeWorkplaceExposure = (exposure) => {
                     <select id="job_role_id" v-model="assignmentForm.job_role_id" class="form-select" :class="{ 'is-invalid': assignmentForm.errors.job_role_id }">
                       <option value="">Seleziona mansione</option>
                       <option v-for="jobRole in jobRoleOptions" :key="jobRole.id" :value="jobRole.id">
-                        {{ jobRole.name }}{{ jobRole.source === "core" ? " - core" : "" }}
+                        {{ jobRole.name }}{{ jobRole.source === "core" ? " - standard" : "" }}
                       </option>
                     </select>
                     <div v-if="assignmentForm.errors.job_role_id" class="invalid-feedback d-block">{{ assignmentForm.errors.job_role_id }}</div>
