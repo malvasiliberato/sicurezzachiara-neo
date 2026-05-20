@@ -28,6 +28,47 @@ Rendere governabile il deploy Git-based su Plesk senza:
 - sorgente applicativa attesa lato Plesk:
   - clone Git del repository nel path del sottodominio
 
+## Perimetro publish applicativo
+
+Il publish runtime verso `staging` e `area` deve restare selettivo.
+
+Includere normalmente:
+- codice backend e frontend necessario al rilascio
+- test, seed e tooling ufficiale quando servono a rendere ripetibile il comportamento operativo
+- script deploy e runbook versionati
+
+Tenere fuori dal normale publish runtime:
+- `AI_CONTEXT.md`
+- `sicurezzachiara_master_progress.md`
+- report storici `_codex_reports` non necessari al deploy in corso
+- backup, dump DB e artefatti operativi temporanei
+- directory locali di appoggio come `.codex_tmp`
+
+Disciplina operativa:
+- usare staging selettivo dei file
+- non usare `git add .`
+- separare quanto possibile publish applicativo, governance cumulativa locale e reportistica storica
+
+Classificazione pratica:
+- `publishable runtime`:
+  - backend/frontend
+  - test e seed/tooling ufficiale quando servono alla ripetibilita'
+  - script deploy e runbook
+- `tracked ma non payload runtime standard`:
+  - `AI_CONTEXT.md`
+  - `sicurezzachiara_master_progress.md`
+  - `AGENTS.md`
+- `local-only / archivio operativo`:
+  - `.codex_tmp/`
+  - dump DB
+  - backup tecnici
+  - report storici cumulativi `_codex_reports`
+
+Trattamento consigliato:
+- `AGENTS.md` puo' restare tracciato come documento operativo locale del repository
+- `AI_CONTEXT.md` e `sicurezzachiara_master_progress.md` restano fonti di governo locale, non payload runtime standard
+- i report `_codex_reports` vanno considerati archivio tecnico salvo scelta esplicita contraria
+
 ## Ambienti attivi
 
 ### staging
@@ -56,11 +97,47 @@ Rendere governabile il deploy Git-based su Plesk senza:
 
 Strategia raccomandata:
 - Git deploy Plesk con build lato server
+- trigger automatico solo su `staging`, mediato da GitHub Actions dopo CI verde
+- promozione `area` manuale da Plesk dopo smoke su `staging`
 
 Motivazione:
 - evita di versionare `public/build`
 - e' coerente con lo stato reale usato negli ambienti online
 - mantiene piu' semplice il ciclo `pull -> install -> build -> cache`
+- impedisce che un push su `main` aggiri la verifica CI
+- evita aggiornamenti automatici dell'endpoint principale senza controllo umano
+
+## Strategia trigger controllato
+
+Workflow:
+- `.github/workflows/ci.yml` valida test e build su `main`
+- `.github/workflows/deploy-staging.yml` parte solo se `ci` si chiude con successo su `main`
+- il workflow chiama il webhook Plesk di `staging` tramite secret GitHub `PLESK_STAGING_WEBHOOK_URL`
+- `area` resta in modalita' manuale dentro Plesk
+
+Secret GitHub richiesto:
+- `PLESK_STAGING_WEBHOOK_URL`
+
+Non committare mai il webhook Plesk in chiaro nel repository: il webhook equivale a un trigger operativo di deploy.
+
+Configurazione Plesk attesa:
+- `staging.sicurezzachiara.it`
+  - repository: `sc-staging-none.git`
+  - branch: `main`
+  - remote: `https://github.com/malvasiliberato/sicurezzachiara-neo.git`
+  - deployment mode: `auto`
+  - post-deploy actions: abilitate
+- `area.sicurezzachiara.it`
+  - repository: `sc-area-manual.git`
+  - branch: `main`
+  - remote: `https://github.com/malvasiliberato/sicurezzachiara-neo.git`
+  - deployment mode: `manual`
+  - post-deploy actions: abilitate
+
+Regola operativa:
+- push su `main` -> CI -> deploy automatico `staging`
+- smoke `staging` -> deploy manuale `area`
+- migration remote sempre manuali, dopo backup DB e decisione esplicita
 
 ## Script post-deploy
 
@@ -128,11 +205,17 @@ Nota operativa confermata sul server reale:
 ### 1. Verifica pre-deploy
 
 - `git rev-parse HEAD`
+- `git status --short`
 - `php artisan test` o suite mirata
 - `npm run build`
 - verifica file `.env`
 - verifica DB target corretto
 - backup DB target
+
+Controllo minimo del perimetro:
+- confermare che il publish non stia trascinando file di governance locale o archivi tecnici
+- confermare che `AI_CONTEXT.md` e `sicurezzachiara_master_progress.md` restino fuori dal normale rollout applicativo, salvo scelta esplicita
+- confermare che `AGENTS.md` e i report `_codex_reports` non entrino nel rollout applicativo per semplice rumore di working tree
 
 ### 2. Aggiornamento codice remoto
 
@@ -258,6 +341,7 @@ Nessun segreto deve essere committato nel repository.
 - la build puo' mostrare il warning noto su:
   - `lottie-web` / `eval`
 - il warning non e' attualmente bloccante
+- il repository locale puo' contenere report, backup e materiale di audit non destinati al deploy: trattarli come perimetro separato dal runtime
 
 ## Backup e rollback
 

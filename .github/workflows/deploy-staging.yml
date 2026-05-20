@@ -1,0 +1,33 @@
+name: deploy-staging
+
+on:
+  workflow_run:
+    workflows:
+      - ci
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  plesk-staging:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Trigger Plesk staging deploy
+        env:
+          PLESK_STAGING_WEBHOOK_URL: ${{ secrets.PLESK_STAGING_WEBHOOK_URL }}
+        run: |
+          if [ -z "$PLESK_STAGING_WEBHOOK_URL" ]; then
+            echo "PLESK_STAGING_WEBHOOK_URL secret is not configured."
+            exit 1
+          fi
+
+          curl --fail --show-error --silent --location \
+            --request POST \
+            "$PLESK_STAGING_WEBHOOK_URL"
