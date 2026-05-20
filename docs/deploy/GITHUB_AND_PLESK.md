@@ -120,6 +120,10 @@ Secret GitHub richiesto:
 
 Non committare mai il webhook Plesk in chiaro nel repository: il webhook equivale a un trigger operativo di deploy.
 
+Stato operativo:
+- secret `PLESK_STAGING_WEBHOOK_URL` configurato su GitHub il 2026-05-20
+- workflow `deploy-staging` attivo
+
 Configurazione Plesk attesa:
 - `staging.sicurezzachiara.it`
   - repository: `sc-staging-none.git`

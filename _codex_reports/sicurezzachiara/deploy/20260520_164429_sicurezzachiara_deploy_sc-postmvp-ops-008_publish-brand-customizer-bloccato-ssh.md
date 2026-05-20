@@ -64,13 +64,13 @@ Definire inoltre una strategia controllata per i deploy successivi dopo aggiorna
 - Output atteso: staging auto dopo CI verde, area manuale dopo smoke.
 
 ## Dipendenze
-- Secret GitHub richiesto: `PLESK_STAGING_WEBHOOK_URL`.
+- Secret GitHub `PLESK_STAGING_WEBHOOK_URL` configurato il 2026-05-20.
 - Workflow CI esistente: `.github/workflows/ci.yml`.
 - Workflow deploy staging: `.github/workflows/deploy-staging.yml`.
 - Runbook: `docs/deploy/GITHUB_AND_PLESK.md`.
 
 ## Rischi
-- Se il secret GitHub non viene configurato, il workflow `deploy-staging` fallira' in modo esplicito senza deploy.
+- Se il secret GitHub viene rimosso o rinominato, il workflow `deploy-staging` fallira' in modo esplicito senza deploy.
 - Se la CI viene rinominata, va aggiornata la chiave `workflows: [ci]` nel workflow deploy.
 - Le migration restano volutamente fuori dall'automatismo: un deploy con nuove migration richiede finestra operativa e backup DB.
 - Il repository locale contiene report e documenti di governance non sempre destinati al publish runtime: mantenere staging selettivo.
@@ -84,9 +84,9 @@ Strategia da usare da ora in avanti:
 5. eseguire smoke su `staging`;
 6. promuovere `area` manualmente da Plesk solo dopo esito positivo.
 
-Per completare l'automazione staging, configurare in GitHub il secret `PLESK_STAGING_WEBHOOK_URL` con il webhook del repository Plesk di staging.
+Automazione staging completata lato GitHub con secret `PLESK_STAGING_WEBHOOK_URL`.
 
 ## Punto di stato finale
 Deploy completato su `staging` e `area` al commit `d48abe3`.
 
-Stato finale: `CHIUSO`, con strategia controllata pronta in repository e unico prerequisito operativo residuo nel secret GitHub per il trigger automatico staging.
+Stato finale: `CHIUSO`, con strategia controllata pronta in repository e secret GitHub configurato per il trigger automatico staging.
