@@ -43,6 +43,12 @@ Definire inoltre una strategia controllata per i deploy successivi dopo aggiorna
 - `https://staging.sicurezzachiara.it/login`: `200`.
 - `https://area.sicurezzachiara.it/login`: `200`.
 - `manifest.json` live rigenerato su entrambi gli ambienti con asset remoti aggiornati per `Login.vue` e `app.js`.
+- Dopo configurazione `gh`, secret GitHub `PLESK_STAGING_WEBHOOK_URL` configurato sia a livello repository sia per environment `staging`.
+- CI riallineata al comportamento Plesk: `npm ci --legacy-peer-deps` e build frontend prima dei test backend.
+- Run GitHub Actions `ci` sul commit `380f2d8`: verde.
+- Run GitHub Actions `deploy-staging` manuale sul commit `380f2d8`: verde.
+- Ultimo commit Plesk su `staging` dopo workflow: `380f2d89dce57c8e3e2a77b4cba14856bb1947c2`.
+- Smoke post-workflow `https://staging.sicurezzachiara.it/login`: `200`.
 
 ## Decisioni
 - Pubblicato il lotto runtime gia' commitato, senza lanciare migration remote automatiche.
@@ -51,6 +57,7 @@ Definire inoltre una strategia controllata per i deploy successivi dopo aggiorna
   - area: manuale, usato come promozione consapevole.
 - Aggiunto workflow GitHub Actions `deploy-staging` che chiama il webhook Plesk di staging solo dopo CI verde su `main` o manual dispatch.
 - Il webhook Plesk non viene committato: deve vivere nel secret GitHub `PLESK_STAGING_WEBHOOK_URL`.
+- Aggiornata la CI per rendere effettivamente percorribile il gate automatico prima del deploy staging.
 
 ## Fasi o step rilevanti
 - Step ID: `SC-POSTMVP-OPS-008`
@@ -89,4 +96,4 @@ Automazione staging completata lato GitHub con secret `PLESK_STAGING_WEBHOOK_URL
 ## Punto di stato finale
 Deploy completato su `staging` e `area` al commit `d48abe3`.
 
-Stato finale: `CHIUSO`, con strategia controllata pronta in repository e secret GitHub configurato per il trigger automatico staging.
+Stato finale: `CHIUSO`, con strategia controllata pronta in repository, CI verde, secret GitHub configurato e deploy staging validato tramite workflow.
