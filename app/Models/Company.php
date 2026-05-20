@@ -73,4 +73,9 @@ class Company extends Model
     {
         return $this->morphMany(RiskMeasure::class, 'profileable');
     }
+
+    public function dvrDocuments(): HasMany
+    {
+        return $this->hasMany(DvrDocument::class);
+    }
 }

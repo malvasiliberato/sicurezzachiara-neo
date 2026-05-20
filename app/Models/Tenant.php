@@ -71,6 +71,11 @@ class Tenant extends Model
         return $this->hasMany(AuditEvent::class);
     }
 
+    public function dvrDocuments(): HasMany
+    {
+        return $this->hasMany(DvrDocument::class);
+    }
+
     public function equipmentAssets(): HasManyThrough
     {
         return $this->hasManyThrough(EquipmentAsset::class, Company::class);
